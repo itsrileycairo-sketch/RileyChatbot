@@ -40,9 +40,13 @@ export default function AdminDashboard() {
     fetchData();
   }, []);
 
-  const fetchPortfolios = async () => {
+ const fetchPortfolios = async () => {
     const res = await fetch('/api/portfolio');
-    if (res.ok) setPortfolios(await res.json());
+    if (res.ok) {
+      const data = await res.json();
+      // Buka "paket"-nya, dan ambil bagian 'karya' saja
+      setPortfolios(data.karya || []); 
+    }
   };
 
   // Handler Upload Gambar Fisik

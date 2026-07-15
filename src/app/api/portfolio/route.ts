@@ -3,10 +3,24 @@ import { pool } from '@/lib/db';
 
 export async function GET() {
   try {
-    const [rows] = await pool.query('SELECT * FROM karya ORDER BY id DESC');
-    return NextResponse.json(rows);
+    // 🚀 UPGRADE: Mengambil semua data dari berbagai tabel
+    const [profilRows]: any = await pool.query('SELECT * FROM profil_web WHERE id = 1');
+    const [karyaRows]: any = await pool.query('SELECT * FROM karya ORDER BY id DESC');
+    const [skillsRows]: any = await pool.query('SELECT * FROM skills');
+    const [experiencesRows]: any = await pool.query('SELECT * FROM experiences ORDER BY id DESC');
+    const [servicesRows]: any = await pool.query('SELECT * FROM services');
+
+    // Mengirim semuanya sebagai satu paket JSON ke Frontend
+    return NextResponse.json({
+      profil: profilRows[0] || null,
+      karya: karyaRows || [],
+      skills: skillsRows || [],
+      experiences: experiencesRows || [],
+      services: servicesRows || []
+    });
   } catch (error) {
-    return NextResponse.json({ error: 'Gagal mengambil data karya' }, { status: 500 });
+    console.error("🔥 ERROR DATABASE (GET):", error);
+    return NextResponse.json({ error: 'Gagal mengambil data portfolio' }, { status: 500 });
   }
 }
 

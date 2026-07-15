@@ -3,6 +3,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send } from 'lucide-react';
 
+// IMPORT BARU: Alat untuk membaca Markdown & Rumus Matematika
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css'; // Gaya (CSS) wajib agar rumus tampil cantik
+
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string }[]>([
@@ -116,8 +122,27 @@ export default function Chatbot() {
           {/* Chat Box */}
           <div className="flex-1 p-4 overflow-y-auto bg-gray-50 flex flex-col gap-3">
             {messages.map((msg, idx) => (
-              <div key={idx} className={`max-w-[85%] p-3 rounded-xl text-sm ${msg.role === 'user' ? 'bg-blue-600 text-white self-end rounded-br-none' : 'bg-gray-200 text-gray-800 self-start rounded-bl-none'}`}>
-                {msg.text}
+              <div 
+                key={idx} 
+                className={`max-w-[85%] p-3 rounded-xl text-sm ${
+                  msg.role === 'user' 
+                    ? 'bg-blue-600 text-white self-end rounded-br-none' 
+                    : 'bg-gray-200 text-gray-800 self-start rounded-bl-none'
+                }`}
+              >
+                {/* PERUBAHAN UTAMA: Render dengan ReactMarkdown */}
+                {msg.role === 'user' ? (
+                  msg.text 
+                ) : (
+                 <div className="prose prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-gray-800 prose-pre:text-gray-100">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkMath]}
+                    rehypePlugins={[rehypeKatex]}
+                  >
+                    {msg.text}
+                  </ReactMarkdown>
+                </div>
+                )}
               </div>
             ))}
             {isLoading && messages[messages.length - 1]?.text === '' && (

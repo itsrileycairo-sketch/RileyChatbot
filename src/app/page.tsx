@@ -1,156 +1,201 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Chatbot from '@/components/Chatbot';
-import { GraduationCap, Briefcase, Code, Cpu, Server, Mail } from 'lucide-react';
-
-interface Layanan { id: number; title: string; desc: string; icon: string; }
-interface Pendidikan { id: number; tahun: string; sekolah: string; jurusan: string; }
-interface ProfilContent {
-  namaLengkap: string; headline: string; tentang: string; email: string;
-  heroImage: string; aboutImage: string; github: string; linkedin: string; instagram: string;
-  layanan: Layanan[]; pendidikan: Pendidikan[];
-}
-
-// URL Gambar Default/Placeholder yang aman
-const DEFAULT_HERO_IMG = 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&q=80';
-const DEFAULT_ABOUT_IMG = 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=800&q=80';
+import { ChevronRight, ExternalLink, Code2, Briefcase, Mail, Camera, Link2, Globe } from 'lucide-react';
 
 export default function Home() {
-  const [content, setContent] = useState<ProfilContent>({
-    namaLengkap: 'Belum diatur', headline: 'Belum diatur', tentang: 'Belum ada data.', email: '-',
-    heroImage: '', aboutImage: '', github: '', linkedin: '', instagram: '',
-    layanan: [], pendidikan: []
-  });
+  const [data, setData] = useState<any>(null);
 
   useEffect(() => {
-    const fetchContent = async () => {
-      try {
-        const res = await fetch('/api/profile');
-        if (res.ok) {
-          const data = await res.json();
-          setContent({
-            namaLengkap: data.nama_lengkap || 'Belum diatur',
-            headline: data.headline || 'Belum diatur',
-            tentang: data.tentang || 'Belum ada data profil.',
-            email: data.email || '-',
-            heroImage: data.hero_image || '', 
-            aboutImage: data.about_image || '',
-            github: data.github_link || '#',
-            linkedin: data.linkedin_link || '#',
-            instagram: data.instagram_link || '#',
-            layanan: data.layanan || [],
-            pendidikan: data.pendidikan || []
-          });
-        }
-      } catch (error) { console.log('Menunggu data dari backend...'); }
-    };
-    fetchContent();
+    fetch('/api/portfolio').then(res => res.json()).then(setData);
   }, []);
 
-  const renderIcon = (iconName: string) => {
-    switch (iconName) {
-      case 'Code': return <Code className="text-blue-600 mb-4" size={32} />;
-      case 'Cpu': return <Cpu className="text-blue-600 mb-4" size={32} />;
-      case 'Server': return <Server className="text-blue-600 mb-4" size={32} />;
-      default: return <Briefcase className="text-blue-600 mb-4" size={32} />;
-    }
-  };
+  if (!data) return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+      <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+      <p className="text-gray-500 font-semibold animate-pulse">Menyiapkan Portofolio...</p>
+    </div>
+  );
+
+  const profil = data.profil || {};
+  const namaPanggilan = profil.nama_lengkap ? profil.nama_lengkap.split(' ')[0] : 'Riley';
+  // Gambar otomatis jika belum ada gambar dari database
+  const heroImgUrl = profil.hero_image || `https://ui-avatars.com/api/?name=${namaPanggilan}&size=512&background=2563EB&color=fff`;
 
   return (
-    <main className="min-h-screen bg-gray-50 text-gray-900 font-sans pb-20">
-      
+    <main className="min-h-screen bg-white text-gray-900 font-sans selection:bg-blue-200">
+      {/* 
+        Catatan: Navbar TIDAK DIPANGGIL di sini lagi karena biasanya 
+        sudah dipanggil di src/app/layout.tsx agar tidak double!
+      */}
+
       {/* 1. HERO SECTION */}
-      <section className="bg-gradient-to-br from-blue-800 to-slate-900 text-white min-h-[80vh] flex items-center px-6 relative overflow-hidden">
-        <div className="max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-12 items-center relative z-10">
-          <div className="text-left animate-fade-in-up">
-            <h1 className="text-5xl md:text-7xl font-extrabold mb-6 tracking-tight leading-tight">
-              {content.namaLengkap}
-            </h1>
-            <p className="text-xl md:text-2xl text-blue-200 mb-8 font-light">
-              {content.headline}
-            </p>
-            <div className="flex gap-4 mb-8">
-              {content.github !== '#' && content.github !== '' && (
-                <a href={content.github} target="_blank" rel="noreferrer" className="p-3 bg-white/10 hover:bg-white/20 rounded-full transition">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.02c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
-                </a>
-              )}
-              {content.linkedin !== '#' && content.linkedin !== '' && (
-                <a href={content.linkedin} target="_blank" rel="noreferrer" className="p-3 bg-white/10 hover:bg-white/20 rounded-full transition">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>
-                </a>
-              )}
-              {content.instagram !== '#' && content.instagram !== '' && (
-                <a href={content.instagram} target="_blank" rel="noreferrer" className="p-3 bg-white/10 hover:bg-white/20 rounded-full transition">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-                </a>
-              )}
-            </div>
-            <a href="#about" className="inline-block bg-blue-600 text-white px-8 py-3 rounded-full font-bold hover:bg-blue-500 transition shadow-lg transform hover:-translate-y-1">
-              Kenali Saya Lebih Lanjut
+      <section id="beranda" className="pt-32 pb-20 px-6 md:px-12 max-w-7xl mx-auto flex flex-col-reverse md:flex-row items-center gap-12 md:gap-20 min-h-screen">
+        <div className="flex-1 space-y-8 text-center md:text-left">
+          <div className="inline-block bg-blue-50 text-blue-700 font-bold px-4 py-2 rounded-full text-sm mb-2 border border-blue-100">
+            👋 Selamat datang di portofolio saya
+          </div>
+          <h1 className="text-5xl md:text-7xl font-black leading-[1.1] tracking-tight">
+            Membangun Web <br/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Masa Depan.</span>
+          </h1>
+          <p className="text-lg md:text-xl text-gray-500 max-w-2xl leading-relaxed">
+            Halo! Saya <strong className="text-gray-900">{profil.nama_lengkap || 'Riley'}</strong>. 
+            Seorang {profil.headline || 'Web Developer'} yang berdedikasi menciptakan pengalaman digital yang cepat, responsif, dan elegan.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center gap-4 justify-center md:justify-start">
+            <a href="#karya" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full font-bold transition shadow-xl shadow-blue-600/20 flex items-center justify-center gap-2">
+              Lihat Karya Saya <ChevronRight size={20} />
+            </a>
+            <a href="#kontak" className="w-full sm:w-auto bg-gray-100 hover:bg-gray-200 text-gray-800 px-8 py-4 rounded-full font-bold transition flex items-center justify-center">
+              Hubungi Saya
             </a>
           </div>
-          <div className="hidden md:block">
-            {/* PERBAIKAN: Memastikan string tidak pernah kosong dengan URL default */}
-            <img 
-              src={content.heroImage || DEFAULT_HERO_IMG} 
-              alt="Hero" 
-              className="w-full h-[500px] object-cover rounded-3xl shadow-2xl border-4 border-white/10 transform rotate-3 hover:rotate-0 transition duration-500" 
-            />
+        </div>
+        <div className="w-full md:w-5/12 flex justify-center">
+          <div className="relative w-64 h-64 md:w-96 md:h-96">
+            <div className="absolute inset-0 bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-[2rem] md:rounded-[3rem] rotate-6 opacity-20 blur-2xl"></div>
+            <img src={heroImgUrl} alt="Foto Profil" className="relative w-full h-full object-cover rounded-[2rem] md:rounded-[3rem] shadow-2xl border-4 border-white" />
           </div>
         </div>
       </section>
 
-      {/* 2. ABOUT SECTION */}
-      <section id="about" className="py-24 px-6 max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+      {/* 2. TENTANG & PENGALAMAN (TIMELINE) */}
+      <section id="tentang" className="py-24 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-6 md:px-12 grid md:grid-cols-2 gap-16">
           <div>
-            {/* PERBAIKAN: Memastikan string tidak pernah kosong dengan URL default */}
-            <img 
-              src={content.aboutImage || DEFAULT_ABOUT_IMG} 
-              alt="About" 
-              className="w-full rounded-3xl shadow-xl" 
-            />
-          </div>
-          <div>
-            <h2 className="text-4xl font-bold mb-6 text-gray-800">Tentang Saya</h2>
-            <div className="w-20 h-1 bg-blue-600 mb-6"></div>
-            <p className="text-lg text-gray-600 leading-relaxed whitespace-pre-wrap">
-              {content.tentang}
+            <h2 className="text-4xl font-black mb-6">Tentang Saya</h2>
+            <p className="text-gray-600 text-lg leading-relaxed mb-8">
+              {profil.tentang || "Saya adalah seorang developer yang bersemangat memecahkan masalah melalui kode. Saya suka belajar teknologi baru dan membangun aplikasi yang bermanfaat."}
             </p>
-          </div>
-        </div>
-      </section>
-
-      {/* 3. LAYANAN & PENDIDIKAN */}
-      <section className="bg-gray-100 py-20 px-6">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold mb-12 text-center text-gray-800">Spesialisasi & Layanan</h2>
-          {content.layanan.length === 0 ? (
-            <p className="text-center text-gray-500 italic">Belum ada layanan.</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {content.layanan.map((lay) => (
-                <div key={lay.id} className="bg-white p-8 rounded-2xl hover:shadow-xl transition transform hover:-translate-y-2">
-                  {renderIcon(lay.icon)}
-                  <h3 className="font-bold text-2xl mb-3">{lay.title}</h3>
-                  <p className="text-gray-500">{lay.desc}</p>
+            
+            <h3 className="text-2xl font-bold mb-6 flex items-center gap-2"><Code2 className="text-blue-600"/> Layanan Utama</h3>
+            <div className="space-y-4">
+              {data.services?.map((srv: any) => (
+                <div key={srv.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-start gap-4 hover:shadow-md transition">
+                  <div className="bg-blue-50 p-3 rounded-lg text-blue-600"><Briefcase size={24} /></div>
+                  <div>
+                    <h4 className="font-bold text-gray-900 text-lg">{srv.nama_layanan}</h4>
+                    <p className="text-gray-500 text-sm mt-1">{srv.deskripsi}</p>
+                  </div>
                 </div>
               ))}
             </div>
-          )}
+          </div>
+
+          <div>
+            <h2 className="text-4xl font-black mb-8">Perjalanan Karir</h2>
+            <div className="space-y-8 border-l-2 border-blue-100 pl-6 ml-3">
+              {data.experiences?.length > 0 ? data.experiences.map((exp: any) => (
+                <div key={exp.id} className="relative">
+                  <div className="absolute -left-[35px] top-1 w-4 h-4 bg-blue-600 rounded-full border-4 border-white shadow"></div>
+                  <span className="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">{exp.tahun}</span>
+                  <h4 className="font-bold text-xl mt-3 text-gray-900">{exp.posisi}</h4>
+                  <p className="text-gray-900 font-semibold mb-2">{exp.perusahaan}</p>
+                  <p className="text-gray-600">{exp.deskripsi}</p>
+                </div>
+              )) : (
+                <p className="text-gray-500 italic">Belum ada data pengalaman kerja.</p>
+              )}
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* 4. KONTAK */}
-      <section className="py-24 px-6 max-w-4xl mx-auto text-center">
-        <h2 className="text-4xl font-bold mb-6 text-gray-800">Mari Bekerja Sama</h2>
-        <p className="text-gray-600 mb-10 text-xl">Punya ide proyek atau pertanyaan seputar teknologi? Jangan ragu untuk menghubungi saya.</p>
-        <a href={`mailto:${content.email}`} className="inline-flex items-center gap-3 bg-slate-900 text-white px-10 py-4 rounded-full font-bold text-lg hover:bg-slate-800 shadow-xl transition transform hover:scale-105">
-          <Mail size={24} /> Hubungi via Email
-        </a>
+      {/* 3. KEAHLIAN (PROGRESS BARS) */}
+      <section id="keahlian" className="py-24 bg-white">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="text-4xl font-black mb-4">Senjata Andalan</h2>
+          <p className="text-gray-500 text-lg mb-12">Teknologi yang saya gunakan sehari-hari untuk mewujudkan ide menjadi nyata.</p>
+          
+          <div className="grid md:grid-cols-2 gap-x-12 gap-y-8">
+            {data.skills?.map((skill: any) => (
+              <div key={skill.id} className="text-left">
+                <div className="flex justify-between font-bold mb-2">
+                  <span className="text-gray-800">{skill.nama_skill}</span>
+                  <span className="text-blue-600">{skill.persentase}%</span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                  <div 
+                    className="bg-blue-600 h-3 rounded-full transition-all duration-1000 ease-out" 
+                    style={{ width: `${skill.persentase}%` }}
+                  ></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
+      {/* 4. PORTOFOLIO / KARYA (GRID KARTU) */}
+      <section id="karya" className="py-24 bg-slate-900 text-white">
+        <div className="max-w-7xl mx-auto px-6 md:px-12">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+            <div>
+              <h2 className="text-4xl font-black mb-4">Mahakarya Terkini</h2>
+              <p className="text-slate-400 text-lg max-w-xl">Beberapa proyek pilihan yang pernah saya kerjakan. Dari aplikasi web hingga sistem kompleks.</p>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {data.karya?.length > 0 ? data.karya.map((item: any) => (
+              <div key={item.id} className="group bg-slate-800 rounded-3xl overflow-hidden hover:-translate-y-2 transition-transform duration-300">
+                <div className="h-56 overflow-hidden relative">
+                  <img src={item.image_url || 'https://via.placeholder.com/600'} alt={item.judul} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-full">
+                    {item.kategori}
+                  </div>
+                </div>
+                <div className="p-8">
+                  <h3 className="font-bold text-2xl mb-3">{item.judul}</h3>
+                  <p className="text-slate-400 mb-6 line-clamp-3">{item.deskripsi}</p>
+                  {item.link_project && (
+                    <a href={item.link_project} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-blue-400 font-bold hover:text-blue-300 transition">
+                      Kunjungi Proyek <ExternalLink size={18} />
+                    </a>
+                  )}
+                </div>
+              </div>
+            )) : (
+              <div className="col-span-3 text-center py-20 text-slate-500 bg-slate-800/50 rounded-3xl border border-slate-700/50 border-dashed">
+                Belum ada karya yang diunggah.
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* 5. FOOTER & KONTAK */}
+      <footer id="kontak" className="py-16 bg-gray-50 border-t border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 text-center flex flex-col items-center">
+          <h2 className="text-3xl font-black mb-8">Mari Bekerja Sama!</h2>
+          <div className="flex gap-4 mb-12">
+          {profil.email && (
+              <a href={`mailto:${profil.email}`} className="bg-white p-4 rounded-full shadow-sm text-gray-600 hover:text-blue-600 hover:shadow-md transition">
+                <Mail size={24} />
+              </a>
+            )}
+            {profil.github_link && (
+              <a href={profil.github_link} target="_blank" className="bg-white p-4 rounded-full shadow-sm text-gray-600 hover:text-blue-600 hover:shadow-md transition">
+                <Code2 size={24} /> {/* Diganti ikon Kode */}
+              </a>
+            )}
+            {profil.linkedin_link && (
+              <a href={profil.linkedin_link} target="_blank" className="bg-white p-4 rounded-full shadow-sm text-gray-600 hover:text-blue-600 hover:shadow-md transition">
+                <Briefcase size={24} /> {/* Diganti ikon Tas Kerja */}
+              </a>
+            )}
+            {profil.instagram_link && (
+              <a href={profil.instagram_link} target="_blank" className="bg-white p-4 rounded-full shadow-sm text-gray-600 hover:text-blue-600 hover:shadow-md transition">
+                <Camera size={24} /> {/* Diganti ikon Kamera */}
+              </a>
+            )}
+          </div>
+          <p className="text-gray-500 font-medium">© {new Date().getFullYear()} {profil.nama_lengkap || 'Riley'}. All rights reserved.</p>
+        </div>
+      </footer>
+
+      {/* Chatbot tetap muncul melayang di pojok */}
       <Chatbot />
     </main>
   );
