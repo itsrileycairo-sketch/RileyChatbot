@@ -7,28 +7,22 @@ import { MessageCircle, X, Send } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import 'katex/dist/katex.min.css'; // Gaya (CSS) wajib agar rumus tampil cantik
+import 'katex/dist/katex.min.css';
 
 /* ---------- KOMPONEN ROBOT BERGERAK ---------- */
 const RobotLogo = () => (
   <div className="relative w-10 h-10 sm:w-11 sm:h-11">
     <svg viewBox="0 0 40 40" className="w-full h-full drop-shadow-[0_0_6px_rgba(59,130,246,0.8)]">
-      {/* Antena bergetar */}
       <g className="origin-bottom animate-[antenna_2s_ease-in-out_infinite]">
         <line x1="20" y1="2" x2="20" y2="8" stroke="#93c5fd" strokeWidth="2" strokeLinecap="round" />
         <circle cx="20" cy="2" r="2.5" fill="#60a5fa" className="animate-pulse" />
       </g>
-      {/* Kepala */}
       <rect x="8" y="8" width="24" height="20" rx="5" fill="#1e293b" stroke="#3b82f6" strokeWidth="1.5" />
-      {/* Mata kiri */}
       <ellipse cx="15" cy="17" rx="3" ry="3.5" fill="#0f172a" stroke="#60a5fa" strokeWidth="1" />
       <ellipse cx="15" cy="17" rx="1.5" ry="1.5" fill="#facc15" className="animate-[blink_3s_infinite]" />
-      {/* Mata kanan */}
       <ellipse cx="25" cy="17" rx="3" ry="3.5" fill="#0f172a" stroke="#60a5fa" strokeWidth="1" />
       <ellipse cx="25" cy="17" rx="1.5" ry="1.5" fill="#facc15" className="animate-[blink_3s_infinite]" />
-      {/* Mulut (LED senyum) */}
       <path d="M14 24 Q20 28 26 24" stroke="#60a5fa" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-      {/* Telinga / sisi */}
       <rect x="4" y="14" width="4" height="8" rx="2" fill="#1e40af" />
       <rect x="32" y="14" width="4" height="8" rx="2" fill="#1e40af" />
     </svg>
@@ -46,7 +40,7 @@ const RobotLogo = () => (
   </div>
 );
 
-/* ---------- ANIMASI LOADING (BERPIKIR) ---------- */
+/* ---------- ANIMASI LOADING ---------- */
 const ThinkingIndicator = () => (
   <div className="flex items-center gap-1.5 px-1">
     <span className="sr-only">AI sedang berpikir</span>
@@ -81,13 +75,14 @@ export default function Chatbot() {
   }, [messages]);
 
   const sendMessage = async () => {
-    if (!input.trim()) return;
+    // 🔥 PERBAIKAN 1: GEMBOK TOTAL! Tolak request jika input kosong ATAU AI masih loading membalas
+    if (!input.trim() || isLoading) return;
 
     const userMessage = input;
-    setMessages((prev) => [...prev, { role: 'user', text: userMessage }]);
-    setInput('');
+    setInput(''); // Langsung kosongkan input agar tidak bisa ditekan Enter berulang kali
     setIsLoading(true);
 
+    setMessages((prev) => [...prev, { role: 'user', text: userMessage }]);
     setMessages((prev) => [...prev, { role: 'ai', text: '' }]);
 
     try {
@@ -101,7 +96,10 @@ export default function Chatbot() {
         const errData = await res.json();
         setMessages((prev) => {
           const updated = [...prev];
-          updated[updated.length - 1].text = errData.reply || 'Waduh, error bro.';
+          // Tampilkan pesan error spesifik jika limit habis, agar user tahu
+          updated[updated.length - 1].text = res.status === 429 
+            ? 'Waduh, limit obrolan AI harian Kak Riley udah habis nih bro! Coba balik lagi besok ya. 🙏' 
+            : (errData.reply || 'Waduh, error bro.');
           return updated;
         });
         setIsLoading(false);
@@ -153,7 +151,6 @@ export default function Chatbot() {
 
   return (
     <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-50">
-      {/* Gaya global untuk chatbot */}
       <style>{`
         .chat-scroll::-webkit-scrollbar { width: 5px; }
         .chat-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.3); border-radius: 10px; }
@@ -172,7 +169,6 @@ export default function Chatbot() {
         <div className="bg-slate-900/90 backdrop-blur-2xl rounded-2xl shadow-[0_0_30px_rgba(59,130,246,0.3)] border border-blue-500/20 w-[calc(100vw-2rem)] sm:w-[26rem] md:w-[30rem] overflow-hidden flex flex-col"
              style={{ height: 'min(620px, 80vh)' }}>
           
-          {/* HEADER DENGAN ROBOT */}
           <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 p-3 sm:p-4 flex items-center gap-3 shadow-lg shadow-blue-900/30">
             <RobotLogo />
             <div className="flex-1">
@@ -194,7 +190,6 @@ export default function Chatbot() {
             </button>
           </div>
 
-          {/* AREA PESAN */}
           <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 chat-scroll bg-slate-950/50">
             {messages.map((msg, idx) => (
               <div
@@ -224,7 +219,6 @@ export default function Chatbot() {
               </div>
             ))}
 
-            {/* Indikator loading super keren */}
             {isLoading && messages[messages.length - 1]?.text === '' && (
               <div className="flex justify-start animate-msg-in">
                 <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 rounded-2xl rounded-bl-md px-3.5 py-2.5 shadow-md flex items-center gap-2">
@@ -236,20 +230,22 @@ export default function Chatbot() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* INPUT AREA */}
           <div className="p-2.5 sm:p-3 bg-slate-900/80 backdrop-blur-md border-t border-blue-500/20 flex items-center gap-2">
+            {/* 🔥 PERBAIKAN 2: Nonaktifkan kolom ketik (input) secara visual & fungsi ketika loading */}
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-              placeholder="Ketik pesan..."
-              className="flex-1 bg-slate-800 border border-slate-700 rounded-full px-4 py-2.5 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all"
+              disabled={isLoading}
+              placeholder={isLoading ? "AI sedang mengetik balasan..." : "Ketik pesan..."}
+              className="flex-1 bg-slate-800 border border-slate-700 rounded-full px-4 py-2.5 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             />
+            {/* 🔥 PERBAIKAN 3: Tombol kirim mati total (disabled) selama proses loading */}
             <button
               onClick={sendMessage}
-              disabled={isLoading && messages[messages.length - 1]?.text === ''}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white p-2.5 rounded-full shadow-lg shadow-blue-500/20 disabled:from-slate-600 disabled:to-slate-600 disabled:text-slate-400 transition-all duration-200 active:scale-95"
+              disabled={isLoading || !input.trim()}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white p-2.5 rounded-full shadow-lg shadow-blue-500/20 disabled:from-slate-700 disabled:to-slate-700 disabled:text-slate-500 transition-all duration-200 active:scale-95"
               aria-label="Kirim"
             >
               <Send size={18} />
@@ -257,7 +253,6 @@ export default function Chatbot() {
           </div>
         </div>
       ) : (
-        /* TOMBOL BUKA CHAT DENGAN EFEK ROBOT */
         <button
           onClick={() => setIsOpen(true)}
           className="relative bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-4 rounded-full shadow-[0_0_20px_rgba(59,130,246,0.5)] hover:shadow-[0_0_30px_rgba(99,102,241,0.8)] transition-all duration-300 hover:scale-110 group"
