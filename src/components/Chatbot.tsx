@@ -1,15 +1,17 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send } from 'lucide-react';
-
-// IMPORT BARU: Alat untuk membaca Markdown & Rumus Matematika
+import { X, Send, Image as ImageIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 
-/* ---------- KOMPONEN ROBOT BERGERAK ---------- */
+// 🔥 TAMBAHAN BARU: Syntax Highlighter biar kodingan warna-warni!
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+
+/* ---------- KOMPONEN ROBOT & LOADING ---------- */
 const RobotLogo = () => (
   <div className="relative w-10 h-10 sm:w-11 sm:h-11">
     <svg viewBox="0 0 40 40" className="w-full h-full drop-shadow-[0_0_6px_rgba(59,130,246,0.8)]">
@@ -27,42 +29,29 @@ const RobotLogo = () => (
       <rect x="32" y="14" width="4" height="8" rx="2" fill="#1e40af" />
     </svg>
     <style>{`
-      @keyframes antenna {
-        0%, 100% { transform: rotate(0deg); }
-        25% { transform: rotate(8deg); }
-        75% { transform: rotate(-6deg); }
-      }
-      @keyframes blink {
-        0%, 96%, 100% { transform: scaleY(1); }
-        98% { transform: scaleY(0.1); }
-      }
+      @keyframes antenna { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(8deg); } 75% { transform: rotate(-6deg); } }
+      @keyframes blink { 0%, 96%, 100% { transform: scaleY(1); } 98% { transform: scaleY(0.1); } }
     `}</style>
   </div>
 );
 
-/* ---------- ANIMASI LOADING ---------- */
 const ThinkingIndicator = () => (
   <div className="flex items-center gap-1.5 px-1">
-    <span className="sr-only">AI sedang berpikir</span>
     <span className="w-2 h-2 bg-blue-400 rounded-full animate-[wave_1.2s_ease-in-out_infinite] shadow-[0_0_8px_#3b82f6]" style={{ animationDelay: '0s' }}></span>
     <span className="w-2 h-2 bg-blue-400 rounded-full animate-[wave_1.2s_ease-in-out_infinite] shadow-[0_0_8px_#3b82f6]" style={{ animationDelay: '0.2s' }}></span>
     <span className="w-2 h-2 bg-blue-400 rounded-full animate-[wave_1.2s_ease-in-out_infinite] shadow-[0_0_8px_#3b82f6]" style={{ animationDelay: '0.4s' }}></span>
-    <style>{`
-      @keyframes wave {
-        0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-        30% { transform: translateY(-6px); opacity: 1; }
-      }
-    `}</style>
+    <style>{`@keyframes wave { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-6px); opacity: 1; } }`}</style>
   </div>
 );
 
 /* ---------- KOMPONEN UTAMA CHATBOT ---------- */
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string }[]>([
-    { role: 'ai', text: 'Yoo! Ada yang mau ditanyain soal project Kak Riley?' }
+  const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string; hasImage?: boolean }[]>([
+    { role: 'ai', text: 'Yoo! Ada yang mau ditanyain soal project Kak Riley? Kirim screenshot kodingan error juga bisa bro!' }
   ]);
   const [input, setInput] = useState('');
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -70,36 +59,47 @@ export default function Chatbot() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // ✅ PERBAIKAN ERROR USE-EFFECT: Kurung kurawal ditambahkan agar tidak return apa-apa!
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, imagePreview]);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
 
   const sendMessage = async () => {
-    // 🔥 PERBAIKAN 1: GEMBOK TOTAL! Tolak request jika input kosong ATAU AI masih loading membalas
-    if (!input.trim() || isLoading) return;
+    if ((!input.trim() && !imagePreview) || isLoading) return;
 
-    const userMessage = input;
-    setInput(''); // Langsung kosongkan input agar tidak bisa ditekan Enter berulang kali
+    const userMessage = input || "Tolong analisis gambar ini.";
+    const attachedImage = imagePreview;
+    
+    setInput('');
+    setImagePreview(null);
     setIsLoading(true);
 
-    setMessages((prev) => [...prev, { role: 'user', text: userMessage }]);
+    const historyToAPI = messages.filter(m => m.text !== 'Yoo! Ada yang mau ditanyain soal project Kak Riley? Kirim screenshot kodingan error juga bisa bro!');
+
+    setMessages((prev) => [...prev, { role: 'user', text: userMessage, hasImage: !!attachedImage }]);
     setMessages((prev) => [...prev, { role: 'ai', text: '' }]);
 
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage }),
+        body: JSON.stringify({ history: historyToAPI, message: userMessage, image: attachedImage }),
       });
 
       if (!res.ok) {
         const errData = await res.json();
         setMessages((prev) => {
           const updated = [...prev];
-          // Tampilkan pesan error spesifik jika limit habis, agar user tahu
-          updated[updated.length - 1].text = res.status === 429 
-            ? 'Waduh, limit obrolan AI harian Kak Riley udah habis nih bro! Coba balik lagi besok ya. 🙏' 
-            : (errData.reply || 'Waduh, error bro.');
+          updated[updated.length - 1].text = res.status === 429 ? 'Waduh, limit harian abis nih bro! Balik besok ya.' : (errData.reply || 'Waduh, error bro.');
           return updated;
         });
         setIsLoading(false);
@@ -115,19 +115,15 @@ export default function Chatbot() {
           const { done, value } = await reader.read();
           if (done) break;
 
-          const chunk = decoder.decode(value);
-          const lines = chunk.split('\n');
-
+          const lines = decoder.decode(value).split('\n');
           for (const line of lines) {
             if (line.startsWith('data: ')) {
               const dataStr = line.replace('data: ', '').trim();
               if (!dataStr || dataStr.startsWith('[') || dataStr === 'null') continue;
-
               try {
                 const data = JSON.parse(dataStr);
                 const textChunk = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
                 aiResponse += textChunk;
-
                 setMessages((prev) => {
                   const updated = [...prev];
                   updated[updated.length - 1].text = aiResponse;
@@ -141,7 +137,7 @@ export default function Chatbot() {
     } catch (error) {
       setMessages((prev) => {
         const updated = [...prev];
-        updated[updated.length - 1].text = 'Wah putus koneksi nih bro, coba lagi nanti ya.';
+        updated[updated.length - 1].text = 'Koneksi putus cuy, coba lagi nanti ya.';
         return updated;
       });
     } finally {
@@ -155,61 +151,72 @@ export default function Chatbot() {
         .chat-scroll::-webkit-scrollbar { width: 5px; }
         .chat-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.3); border-radius: 10px; }
         .chat-scroll::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
-        .chat-scroll::-webkit-scrollbar-thumb:hover { background: #60a5fa; }
-        @keyframes fadeSlideIn {
-          from { opacity: 0; transform: translateY(12px) scale(0.98); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .animate-msg-in {
-          animation: fadeSlideIn 0.25s ease-out forwards;
-        }
+        .animate-msg-in { animation: fadeSlideIn 0.25s ease-out forwards; }
+        @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
       `}</style>
 
       {isOpen ? (
-        <div className="bg-slate-900/90 backdrop-blur-2xl rounded-2xl shadow-[0_0_30px_rgba(59,130,246,0.3)] border border-blue-500/20 w-[calc(100vw-2rem)] sm:w-[26rem] md:w-[30rem] overflow-hidden flex flex-col"
-             style={{ height: 'min(620px, 80vh)' }}>
+        <div className="bg-slate-900/95 backdrop-blur-3xl rounded-2xl shadow-[0_0_40px_rgba(59,130,246,0.3)] border border-blue-500/30 w-[calc(100vw-2rem)] sm:w-[26rem] md:w-[32rem] overflow-hidden flex flex-col"
+             style={{ height: 'min(650px, 85vh)' }}>
           
           <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 p-3 sm:p-4 flex items-center gap-3 shadow-lg shadow-blue-900/30">
             <RobotLogo />
             <div className="flex-1">
               <h2 className="text-white font-bold text-sm sm:text-base tracking-tight">AI Riley Assistant</h2>
               <p className="text-blue-200 text-[10px] sm:text-xs flex items-center gap-1.5">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                </span>
-                Online sekarang
+                <span className="relative flex h-2 w-2"><span className="animate-ping absolute h-full w-full rounded-full bg-green-400 opacity-75"></span><span className="relative rounded-full h-2 w-2 bg-green-500"></span></span>
+                Vision & Search Active
               </p>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-blue-200 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition-all duration-200"
-              aria-label="Tutup chat"
-            >
-              <X size={18} />
-            </button>
+            <button onClick={() => setIsOpen(false)} className="text-blue-200 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition-all duration-200"><X size={18} /></button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 chat-scroll bg-slate-950/50">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 chat-scroll bg-slate-950/60">
             {messages.map((msg, idx) => (
-              <div
-                key={idx}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-msg-in`}
-              >
-                <div
-                  className={`max-w-[85%] px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl text-xs sm:text-sm leading-relaxed break-words ${
+              <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-msg-in`}>
+                <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-xs sm:text-sm leading-relaxed break-words ${
                     msg.role === 'user'
                       ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/20 rounded-br-md'
                       : 'bg-slate-800/80 backdrop-blur-sm text-slate-200 border border-slate-700/50 shadow-md rounded-bl-md'
-                  }`}
-                >
-                  {msg.role === 'user' ? (
-                    msg.text
-                  ) : (
-                    <div className="prose prose-sm prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-slate-900 prose-pre:text-blue-200 prose-code:text-blue-300">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkMath]}
+                  }`}>
+                  
+                  {msg.hasImage && (
+                    <div className="mb-2 text-[10px] bg-white/20 inline-block px-2 py-1 rounded border border-white/30 text-white font-bold flex items-center gap-1 w-fit">
+                      <ImageIcon size={12}/> Gambar terlampir
+                    </div>
+                  )}
+
+                  {msg.role === 'user' ? ( msg.text ) : (
+                    // 🔥 IMPLEMENTASI SYNTAX HIGHLIGHTER & MARKDOWN
+                    <div className="prose prose-sm prose-invert max-w-none prose-p:leading-relaxed prose-pre:p-0 prose-pre:bg-transparent prose-code:text-blue-300">
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkMath]} 
                         rehypePlugins={[rehypeKatex]}
+                        components={{
+                          code({ node, inline, className, children, ...props }: any) {
+                            const match = /language-(\w+)/.exec(className || '');
+                            return !inline && match ? (
+                              <div className="rounded-lg overflow-hidden my-2 border border-slate-700 shadow-lg">
+                                <div className="bg-slate-800 px-3 py-1.5 text-xs text-slate-400 border-b border-slate-700 flex justify-between items-center">
+                                  <span className="uppercase font-bold tracking-wider">{match[1]}</span>
+                                </div>
+                                <SyntaxHighlighter
+                                  style={vscDarkPlus}
+                                  language={match[1]}
+                                  PreTag="div"
+                                  customStyle={{ margin: 0, padding: '1rem', background: '#0f172a' }}
+                                  {...props}
+                                >
+                                  {String(children).replace(/\n$/, '')}
+                                </SyntaxHighlighter>
+                              </div>
+                            ) : (
+                              <code className={`${className} bg-slate-800 px-1.5 py-0.5 rounded text-blue-300 font-mono text-xs`} {...props}>
+                                {children}
+                              </code>
+                            );
+                          }
+                        }}
                       >
                         {msg.text}
                       </ReactMarkdown>
@@ -218,7 +225,7 @@ export default function Chatbot() {
                 </div>
               </div>
             ))}
-
+            
             {isLoading && messages[messages.length - 1]?.text === '' && (
               <div className="flex justify-start animate-msg-in">
                 <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 rounded-2xl rounded-bl-md px-3.5 py-2.5 shadow-md flex items-center gap-2">
@@ -230,22 +237,36 @@ export default function Chatbot() {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="p-2.5 sm:p-3 bg-slate-900/80 backdrop-blur-md border-t border-blue-500/20 flex items-center gap-2">
-            {/* 🔥 PERBAIKAN 2: Nonaktifkan kolom ketik (input) secara visual & fungsi ketika loading */}
+          {imagePreview && (
+            <div className="px-4 py-3 bg-slate-800/90 border-t border-blue-500/30 flex items-center justify-between animate-msg-in">
+              <div className="flex items-center gap-3">
+                <img src={imagePreview} alt="Preview" className="h-12 w-12 object-cover rounded-lg border-2 border-blue-500/50 shadow-lg" />
+                <span className="text-xs font-semibold text-blue-300">Gambar siap dikirim...</span>
+              </div>
+              <button onClick={() => setImagePreview(null)} className="text-slate-400 hover:text-red-400 bg-slate-900 p-2 rounded-full transition-colors"><X size={16}/></button>
+            </div>
+          )}
+
+          <div className="p-2.5 sm:p-3 bg-slate-900/90 backdrop-blur-xl border-t border-blue-500/30 flex items-center gap-2 relative">
+            <label className={`cursor-pointer p-2.5 rounded-full transition-colors ${isLoading ? 'text-slate-600 pointer-events-none' : 'text-slate-400 hover:text-blue-400 hover:bg-blue-500/10'}`} title="Kirim Screenshot/Gambar">
+              <ImageIcon size={20} />
+              <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isLoading} />
+            </label>
+            
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
               disabled={isLoading}
-              placeholder={isLoading ? "AI sedang mengetik balasan..." : "Ketik pesan..."}
-              className="flex-1 bg-slate-800 border border-slate-700 rounded-full px-4 py-2.5 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              placeholder={isLoading ? "AI sedang mengetik..." : "Ketik pesan atau lampirkan gambar..."}
+              className="flex-1 bg-slate-800/50 border border-slate-700 rounded-full px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             />
-            {/* 🔥 PERBAIKAN 3: Tombol kirim mati total (disabled) selama proses loading */}
+            
             <button
               onClick={sendMessage}
-              disabled={isLoading || !input.trim()}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white p-2.5 rounded-full shadow-lg shadow-blue-500/20 disabled:from-slate-700 disabled:to-slate-700 disabled:text-slate-500 transition-all duration-200 active:scale-95"
+              disabled={isLoading || (!input.trim() && !imagePreview)}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white p-3 rounded-full shadow-lg shadow-blue-500/20 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-600 transition-all duration-200 active:scale-95"
               aria-label="Kirim"
             >
               <Send size={18} />
