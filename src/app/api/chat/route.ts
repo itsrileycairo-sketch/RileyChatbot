@@ -8,10 +8,9 @@ export async function POST(req: Request) {
             return NextResponse.json({ reply: "Waduh, API Key belum dipasang nih, gue gak bisa mikir!" }, { status: 400 });
         }
 
-        // JALUR OPTION A (RAG): Ambil data portofolio dari MySQL
+        // Ambil data portofolio dari MySQL
         let portfolioContext = "Tidak ada data karya saat ini.";
         try {
-            // Catatan: Pastikan server Laravel di port 8000 Kak Riley sedang jalan
             const resData = await fetch("http://localhost:8000/api/portfolios");
             if (resData.ok) {
                 const dbPortfolios = await resData.json();
@@ -23,10 +22,9 @@ export async function POST(req: Request) {
                 portfolioContext = JSON.stringify(cleanData);
             }
         } catch (dbErr) {
-            console.error("Gagal mengambil context database (mungkin server MySQL belum nyala):", dbErr);
+            console.error("Gagal mengambil context database:", dbErr);
         }
 
-        // STRATEGI 1: System Instruction (Identitas & Aturan AI)
         const systemInstructionText = `
         Lu adalah AI asisten tongkrongan buatan Nolan Fortino Ramadhany (panggilannya Kak Riley), mahasiswa S1 Teknik Komputer UTDI Yogyakarta.
         Sikapmu: Asik, gaul, agak kocak, layaknya teman tongkrongan. Kamu punya pengalaman setara Senior Software Architect.
@@ -41,17 +39,14 @@ export async function POST(req: Request) {
         4. Balas singkat, padat, dan asik.
         `;
 
-        // STRATEGI 2 & 3: Menyusun History dan Memasukkan Teks/Gambar
-        // Mengubah format history frontend menjadi format yang diterima Google API (user / model)
         const contents = history.map((msg: any) => ({
             role: msg.role === 'ai' ? 'model' : 'user',
             parts: [{ text: msg.text }],
         }));
 
-        // Menyiapkan pesan user yang baru
         const newParts: any[] = [{ text: message }];
         
-        // Memasukkan gambar jika ada
+        // 📸 Fitur Baca Gambar (Vision) TETAP DIPERTAHANKAN
         if (image) {
             const base64Data = image.split(',')[1];
             const mimeType = image.split(';')[0].split(':')[1];
@@ -63,22 +58,17 @@ export async function POST(req: Request) {
             });
         }
         
-        // Tambahkan pesan user terbaru ke array contents
         contents.push({ role: 'user', parts: newParts });
 
-        // Menyusun Payload lengkap (System Instruction + Contents + Tools Google Search)
+        // 🗑️ FITUR GOOGLE SEARCH DIHAPUS TOTAL DI SINI
         const requestBody = {
             system_instruction: {
                 parts: [{ text: systemInstructionText }]
             },
-            contents: contents,
-            // STRATEGI 4: Mengaktifkan Google Search Grounding
-            tools: [{
-                google_search: {}
-            }]
+            contents: contents
         };
 
-        // 🚀 MENGGUNAKAN gemini-3.5-flash SESUAI PILIHAN KAK RILEY DENGAN STREAMING
+        // 🚀 TETAP SETIA MENGGUNAKAN GEMINI 3.5 FLASH
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:streamGenerateContent?alt=sse&key=${process.env.GEMINI_API_KEY}`;
         
         const response = await fetch(apiUrl, {
@@ -92,7 +82,6 @@ export async function POST(req: Request) {
             throw new Error(data.error?.message || "Google API nolak");
         }
 
-        // 🚀 RETURN STREAM RESPONSE LANGSUNG KE FRONTEND
         return new Response(response.body, {
             headers: {
                 'Content-Type': 'text/event-stream',
