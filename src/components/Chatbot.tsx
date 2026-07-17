@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { X, Send, Image as ImageIcon } from 'lucide-react';
+// 🔥 TAMBAH IKON Copy & Check dari lucide-react
+import { X, Send, Image as ImageIcon, Copy, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 
-// 🔥 TAMBAHAN BARU: Syntax Highlighter biar kodingan warna-warni!
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
@@ -44,6 +44,55 @@ const ThinkingIndicator = () => (
   </div>
 );
 
+/* ---------- KOMPONEN TOMBOL COPY (BARU) ---------- */
+// Dibuat terpisah agar masing-masing blok kode punya state "Copied" sendiri
+const CodeBlock = ({ node, inline, className, children, ...props }: any) => {
+  const match = /language-(\w+)/.exec(className || '');
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleCopy = () => {
+    const codeString = String(children).replace(/\n$/, '');
+    navigator.clipboard.writeText(codeString);
+    setIsCopied(true);
+    // Kembalikan tombol ke "Copy" setelah 2 detik
+    setTimeout(() => setIsCopied(false), 2000);
+  };
+
+  if (!inline && match) {
+    return (
+      <div className="rounded-lg overflow-hidden my-3 border border-slate-700 shadow-xl group">
+        <div className="bg-slate-800 px-4 py-2 text-xs text-slate-400 border-b border-slate-700 flex justify-between items-center">
+          <span className="uppercase font-bold tracking-wider">{match[1]}</span>
+          <button
+            onClick={handleCopy}
+            className={`flex items-center gap-1.5 px-2 py-1 rounded transition-all duration-200 ${
+              isCopied ? 'bg-green-500/20 text-green-400' : 'hover:bg-slate-700 hover:text-white text-slate-400'
+            }`}
+            title="Copy code"
+          >
+            {isCopied ? <Check size={14} /> : <Copy size={14} />}
+            <span className={isCopied ? 'font-semibold' : ''}>{isCopied ? 'Copied!' : 'Copy'}</span>
+          </button>
+        </div>
+        <SyntaxHighlighter
+          style={vscDarkPlus}
+          language={match[1]}
+          PreTag="div"
+          customStyle={{ margin: 0, padding: '1rem', background: '#0f172a' }}
+          {...props}
+        >
+          {String(children).replace(/\n$/, '')}
+        </SyntaxHighlighter>
+      </div>
+    );
+  }
+  return (
+    <code className={`${className} bg-slate-800 px-1.5 py-0.5 rounded text-blue-300 font-mono text-xs`} {...props}>
+      {children}
+    </code>
+  );
+};
+
 /* ---------- KOMPONEN UTAMA CHATBOT ---------- */
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -59,7 +108,6 @@ export default function Chatbot() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // ✅ PERBAIKAN ERROR USE-EFFECT: Kurung kurawal ditambahkan agar tidak return apa-apa!
   useEffect(() => {
     scrollToBottom();
   }, [messages, imagePreview]);
@@ -151,6 +199,7 @@ export default function Chatbot() {
         .chat-scroll::-webkit-scrollbar { width: 5px; }
         .chat-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.3); border-radius: 10px; }
         .chat-scroll::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
+        .chat-scroll::-webkit-scrollbar-thumb:hover { background: #60a5fa; }
         .animate-msg-in { animation: fadeSlideIn 0.25s ease-out forwards; }
         @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
       `}</style>
@@ -163,9 +212,10 @@ export default function Chatbot() {
             <RobotLogo />
             <div className="flex-1">
               <h2 className="text-white font-bold text-sm sm:text-base tracking-tight">AI Riley Assistant</h2>
+              {/* Note: Teks Search dihapus dari Header karena fitur Search di-disable */}
               <p className="text-blue-200 text-[10px] sm:text-xs flex items-center gap-1.5">
                 <span className="relative flex h-2 w-2"><span className="animate-ping absolute h-full w-full rounded-full bg-green-400 opacity-75"></span><span className="relative rounded-full h-2 w-2 bg-green-500"></span></span>
-                Vision & Search Active
+                Vision Engine Active
               </p>
             </div>
             <button onClick={() => setIsOpen(false)} className="text-blue-200 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition-all duration-200"><X size={18} /></button>
@@ -187,35 +237,13 @@ export default function Chatbot() {
                   )}
 
                   {msg.role === 'user' ? ( msg.text ) : (
-                    // 🔥 IMPLEMENTASI SYNTAX HIGHLIGHTER & MARKDOWN
                     <div className="prose prose-sm prose-invert max-w-none prose-p:leading-relaxed prose-pre:p-0 prose-pre:bg-transparent prose-code:text-blue-300">
                       <ReactMarkdown 
                         remarkPlugins={[remarkMath]} 
                         rehypePlugins={[rehypeKatex]}
                         components={{
-                          code({ node, inline, className, children, ...props }: any) {
-                            const match = /language-(\w+)/.exec(className || '');
-                            return !inline && match ? (
-                              <div className="rounded-lg overflow-hidden my-2 border border-slate-700 shadow-lg">
-                                <div className="bg-slate-800 px-3 py-1.5 text-xs text-slate-400 border-b border-slate-700 flex justify-between items-center">
-                                  <span className="uppercase font-bold tracking-wider">{match[1]}</span>
-                                </div>
-                                <SyntaxHighlighter
-                                  style={vscDarkPlus}
-                                  language={match[1]}
-                                  PreTag="div"
-                                  customStyle={{ margin: 0, padding: '1rem', background: '#0f172a' }}
-                                  {...props}
-                                >
-                                  {String(children).replace(/\n$/, '')}
-                                </SyntaxHighlighter>
-                              </div>
-                            ) : (
-                              <code className={`${className} bg-slate-800 px-1.5 py-0.5 rounded text-blue-300 font-mono text-xs`} {...props}>
-                                {children}
-                              </code>
-                            );
-                          }
+                          // 🔥 MENGGUNAKAN KOMPONEN CODEBLOCK YANG BARU DIBUAT
+                          code: CodeBlock
                         }}
                       >
                         {msg.text}
