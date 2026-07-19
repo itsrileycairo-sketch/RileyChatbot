@@ -45,7 +45,6 @@ const ThinkingIndicator = () => (
 );
 
 /* ---------- KOMPONEN TOMBOL COPY (BARU) ---------- */
-// Dibuat terpisah agar masing-masing blok kode punya state "Copied" sendiri
 const CodeBlock = ({ node, inline, className, children, ...props }: any) => {
   const match = /language-(\w+)/.exec(className || '');
   const [isCopied, setIsCopied] = useState(false);
@@ -54,7 +53,6 @@ const CodeBlock = ({ node, inline, className, children, ...props }: any) => {
     const codeString = String(children).replace(/\n$/, '');
     navigator.clipboard.writeText(codeString);
     setIsCopied(true);
-    // Kembalikan tombol ke "Copy" setelah 2 detik
     setTimeout(() => setIsCopied(false), 2000);
   };
 
@@ -194,7 +192,8 @@ export default function Chatbot() {
   };
 
   return (
-    <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-50">
+    // 🔥 PERBAIKAN: Penambahan suppressHydrationWarning
+    <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-50" suppressHydrationWarning>
       <style>{`
         .chat-scroll::-webkit-scrollbar { width: 5px; }
         .chat-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.3); border-radius: 10px; }
@@ -205,25 +204,24 @@ export default function Chatbot() {
       `}</style>
 
       {isOpen ? (
-        <div className="bg-slate-900/95 backdrop-blur-3xl rounded-2xl shadow-[0_0_40px_rgba(59,130,246,0.3)] border border-blue-500/30 w-[calc(100vw-2rem)] sm:w-[26rem] md:w-[32rem] overflow-hidden flex flex-col"
+        <div suppressHydrationWarning className="bg-slate-900/95 backdrop-blur-3xl rounded-2xl shadow-[0_0_40px_rgba(59,130,246,0.3)] border border-blue-500/30 w-[calc(100vw-2rem)] sm:w-[26rem] md:w-[32rem] overflow-hidden flex flex-col"
              style={{ height: 'min(650px, 85vh)' }}>
           
           <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 p-3 sm:p-4 flex items-center gap-3 shadow-lg shadow-blue-900/30">
             <RobotLogo />
             <div className="flex-1">
               <h2 className="text-white font-bold text-sm sm:text-base tracking-tight">AI Riley Assistant</h2>
-              {/* Note: Teks Search dihapus dari Header karena fitur Search di-disable */}
               <p className="text-blue-200 text-[10px] sm:text-xs flex items-center gap-1.5">
                 <span className="relative flex h-2 w-2"><span className="animate-ping absolute h-full w-full rounded-full bg-green-400 opacity-75"></span><span className="relative rounded-full h-2 w-2 bg-green-500"></span></span>
                 Vision Engine Active
               </p>
             </div>
-            <button onClick={() => setIsOpen(false)} className="text-blue-200 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition-all duration-200"><X size={18} /></button>
+            <button suppressHydrationWarning onClick={() => setIsOpen(false)} className="text-blue-200 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition-all duration-200"><X size={18} /></button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 chat-scroll bg-slate-950/60">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 chat-scroll bg-slate-950/60" suppressHydrationWarning>
             {messages.map((msg, idx) => (
-              <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-msg-in`}>
+              <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-msg-in`} suppressHydrationWarning>
                 <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-xs sm:text-sm leading-relaxed break-words ${
                     msg.role === 'user'
                       ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/20 rounded-br-md'
@@ -241,10 +239,7 @@ export default function Chatbot() {
                       <ReactMarkdown 
                         remarkPlugins={[remarkMath]} 
                         rehypePlugins={[rehypeKatex]}
-                        components={{
-                          // 🔥 MENGGUNAKAN KOMPONEN CODEBLOCK YANG BARU DIBUAT
-                          code: CodeBlock
-                        }}
+                        components={{ code: CodeBlock }}
                       >
                         {msg.text}
                       </ReactMarkdown>
@@ -266,22 +261,23 @@ export default function Chatbot() {
           </div>
 
           {imagePreview && (
-            <div className="px-4 py-3 bg-slate-800/90 border-t border-blue-500/30 flex items-center justify-between animate-msg-in">
+            <div className="px-4 py-3 bg-slate-800/90 border-t border-blue-500/30 flex items-center justify-between animate-msg-in" suppressHydrationWarning>
               <div className="flex items-center gap-3">
                 <img src={imagePreview} alt="Preview" className="h-12 w-12 object-cover rounded-lg border-2 border-blue-500/50 shadow-lg" />
                 <span className="text-xs font-semibold text-blue-300">Gambar siap dikirim...</span>
               </div>
-              <button onClick={() => setImagePreview(null)} className="text-slate-400 hover:text-red-400 bg-slate-900 p-2 rounded-full transition-colors"><X size={16}/></button>
+              <button suppressHydrationWarning onClick={() => setImagePreview(null)} className="text-slate-400 hover:text-red-400 bg-slate-900 p-2 rounded-full transition-colors"><X size={16}/></button>
             </div>
           )}
 
-          <div className="p-2.5 sm:p-3 bg-slate-900/90 backdrop-blur-xl border-t border-blue-500/30 flex items-center gap-2 relative">
+          <div className="p-2.5 sm:p-3 bg-slate-900/90 backdrop-blur-xl border-t border-blue-500/30 flex items-center gap-2 relative" suppressHydrationWarning>
             <label className={`cursor-pointer p-2.5 rounded-full transition-colors ${isLoading ? 'text-slate-600 pointer-events-none' : 'text-slate-400 hover:text-blue-400 hover:bg-blue-500/10'}`} title="Kirim Screenshot/Gambar">
               <ImageIcon size={20} />
-              <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isLoading} />
+              <input suppressHydrationWarning type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isLoading} />
             </label>
             
             <input
+              suppressHydrationWarning
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -292,6 +288,7 @@ export default function Chatbot() {
             />
             
             <button
+              suppressHydrationWarning
               onClick={sendMessage}
               disabled={isLoading || (!input.trim() && !imagePreview)}
               className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white p-3 rounded-full shadow-lg shadow-blue-500/20 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-600 transition-all duration-200 active:scale-95"
@@ -303,6 +300,7 @@ export default function Chatbot() {
         </div>
       ) : (
         <button
+          suppressHydrationWarning
           onClick={() => setIsOpen(true)}
           className="relative bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-4 rounded-full shadow-[0_0_20px_rgba(59,130,246,0.5)] hover:shadow-[0_0_30px_rgba(99,102,241,0.8)] transition-all duration-300 hover:scale-110 group"
           aria-label="Buka chat"

@@ -1,69 +1,57 @@
 'use client';
+
 import { useEffect, useState } from 'react';
-import Chatbot from '@/components/Chatbot';
 import { ExternalLink } from 'lucide-react';
 
-interface Karya {
-  id: number; judul: string; kategori: string; deskripsi: string; image_url: string; link_project: string;
-}
-
 export default function Portfolio() {
-  const [karyaList, setKaryaList] = useState<Karya[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [data, setData] = useState<any>(null);
 
   useEffect(() => {
-    const fetchKarya = async () => {
-      try {
-        const res = await fetch('/api/portfolio');
-        if (res.ok) setKaryaList(await res.json());
-      } catch (error) {
-        console.error("Gagal load karya");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchKarya();
+    fetch('/api/portfolio').then(res => res.json()).then(setData);
   }, []);
 
-  return (
-    <main className="min-h-screen bg-gray-50 py-24 px-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-16">
-          <h1 className="text-5xl font-extrabold text-gray-900 mb-4">Karya & Proyek</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">Kumpulan studi kasus, pengembangan web *full stack*, hingga inovasi arsitektur IoT yang pernah saya bangun.</p>
-        </div>
+  if (!data) return (
+    <div className="min-h-[80vh] flex flex-col items-center justify-center">
+      <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4 shadow-[0_0_15px_#22d3ee]"></div>
+      <p className="text-cyan-600 dark:text-cyan-400 font-medium animate-pulse tracking-widest">LOADING PORTFOLIO...</p>
+    </div>
+  );
 
-        {isLoading ? (
-          <p className="text-center text-gray-500 animate-pulse">Memuat data karya dari database...</p>
-        ) : karyaList.length === 0 ? (
-          <div className="text-center bg-white p-10 rounded-2xl shadow-sm border border-gray-100">
-            <p className="text-gray-500 text-lg">Belum ada karya yang diunggah. Silakan tambahkan melalui Panel Admin.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {karyaList.map((item) => (
-              <div key={item.id} className="bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition duration-300 border border-gray-100 flex flex-col group">
-                <div className="relative overflow-hidden h-60">
-                  <img src={item.image_url || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&q=80'} alt={item.judul} className="w-full h-full object-cover transform group-hover:scale-110 transition duration-500" />
-                  <div className="absolute top-4 left-4 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
-                    {item.kategori}
-                  </div>
-                </div>
-                <div className="p-8 flex-1 flex flex-col">
-                  <h3 className="font-bold text-2xl text-gray-900 mb-3 group-hover:text-blue-600 transition">{item.judul}</h3>
-                  <p className="text-gray-600 mb-6 flex-1">{item.deskripsi}</p>
-                  {item.link_project && item.link_project !== '#' && (
-                    <a href={item.link_project} target="_blank" className="inline-flex items-center gap-2 text-blue-600 font-bold hover:text-blue-800 transition">
-                      Lihat Proyek <ExternalLink size={18} />
-                    </a>
-                  )}
+  const karyaList = Array.isArray(data.karya) ? data.karya : [];
+
+  return (
+    <main className="max-w-7xl mx-auto px-6 py-20 min-h-screen relative z-10">
+      <div className="text-center mb-16">
+        <p className="text-cyan-600 dark:text-cyan-400 font-bold tracking-[0.2em] uppercase text-xs mb-2">MY WORKS</p>
+        <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white mb-6 transition-colors">Mahakarya <span className="text-cyan-500">Digital</span></h1>
+      </div>
+
+      {karyaList.length === 0 ? (
+        <p className="text-center text-slate-500">Belum ada karya yang diunggah dari Admin.</p>
+      ) : (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {karyaList.map((item: any) => (
+            <div key={item.id} className="bg-white dark:bg-[#0c0c1d] rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden group hover:border-cyan-500/50 transition-all shadow-lg dark:shadow-xl">
+              <div className="h-56 overflow-hidden relative">
+                <div className="absolute inset-0 bg-slate-900/10 dark:bg-slate-900/40 group-hover:bg-transparent transition-colors duration-500 z-10"></div>
+                <img src={item.image_url || 'https://via.placeholder.com/600x400'} alt={item.judul} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                <div className="absolute top-4 left-4 z-20 bg-white/90 dark:bg-[#050510]/80 backdrop-blur-md text-cyan-700 dark:text-cyan-400 text-xs font-bold px-3 py-1 rounded-full border border-cyan-200 dark:border-cyan-900/50">
+                  {item.kategori}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-      <Chatbot />
+              <div className="p-6">
+                <h3 className="font-bold text-xl text-slate-900 dark:text-white mb-2 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">{item.judul}</h3>
+                <p className="text-slate-600 dark:text-slate-500 text-sm line-clamp-3 mb-6 transition-colors">{item.deskripsi}</p>
+                {item.link_project && (
+                  <a href={item.link_project} target="_blank" rel="noreferrer" className="text-cyan-600 dark:text-cyan-400 text-sm font-semibold flex items-center gap-2 hover:text-cyan-500 dark:hover:text-cyan-300 transition-colors">
+                    Lihat Proyek Asli <ExternalLink size={14} />
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </main>
   );
 }

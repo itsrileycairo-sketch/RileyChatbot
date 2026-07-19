@@ -1,7 +1,10 @@
 'use client';
+
 import { useEffect, useState } from 'react';
+import Navbar from '@/components/Navbar';
 import Chatbot from '@/components/Chatbot';
-import { ExternalLink, Code2, Briefcase, Mail, ChevronRight, Server, Database, Globe, Monitor, Cpu } from 'lucide-react';
+import { ExternalLink, Database, Cpu, Brain, Send } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function Home() {
   const [data, setData] = useState<any>(null);
@@ -11,228 +14,186 @@ export default function Home() {
   }, []);
 
   if (!data) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
-      <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-      <p className="text-slate-500 font-medium animate-pulse">Menyiapkan Mahakarya...</p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-[#050510] transition-colors duration-500">
+      <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4 shadow-[0_0_15px_#22d3ee]"></div>
+      <p className="text-cyan-600 dark:text-cyan-400 font-medium animate-pulse tracking-widest">INITIALIZING...</p>
     </div>
   );
 
   const profil = data.profil || {};
-  const namaPanggilan = profil.nama_lengkap ? profil.nama_lengkap.split(' ')[0] : 'Riley';
-  const heroImgUrl = profil.hero_image || `https://ui-avatars.com/api/?name=${namaPanggilan}&size=512&background=2563EB&color=fff`;
+  const services = data.services || [];
+
+  const fullName = profil.nama_lengkap || 'Kak Riley';
+  const nameArray = fullName.trim().split(' ');
+  let firstName = fullName;
+  let lastName = '';
+
+  if (nameArray.length > 1) {
+      lastName = nameArray.pop() || '';
+      firstName = nameArray.join(' ');
+  }
+
+  // 🔥 FIX TYPESCRIPT: Tambahkan ": any" agar tidak error
+  const fadeUp: any = {
+    hidden: { opacity: 0, y: 40 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+  };
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans selection:bg-blue-200 overflow-hidden">
+    <main className="min-h-screen bg-transparent text-slate-800 dark:text-slate-300 font-sans selection:bg-cyan-500/30 selection:text-cyan-700 dark:selection:text-cyan-200 overflow-hidden relative transition-colors duration-500">
       
-      {/* === CSS TAMBAHAN ANIMASI BAWAAN (TANPA LIBRARY EXTERNAL) === */}
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes scroll {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .animate-fade-up { animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
-        .animate-scroll { animation: scroll 30s linear infinite; }
-        .animate-scroll:hover { animation-play-state: paused; }
-        .delay-100 { animation-delay: 100ms; }
-        .delay-200 { animation-delay: 200ms; }
-        .delay-300 { animation-delay: 300ms; }
-        .delay-400 { animation-delay: 400ms; }
-      `}} />
+      <Navbar />
 
-      {/* === 1. HERO SECTION === */}
-      <section id="beranda" className="relative pt-32 pb-10 px-6 max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-12">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl -z-10"></div>
-        <div className="flex-1 space-y-6 animate-fade-up">
-          <div className="inline-flex items-center gap-2 bg-white/60 backdrop-blur-md border border-slate-200 text-blue-700 font-semibold px-4 py-2 rounded-full text-sm shadow-sm">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
-            </span>
-            Tersedia untuk proyek baru
-          </div>
-          
-          <h1 className="text-5xl md:text-7xl font-black leading-tight tracking-tight text-slate-800">
-            Membangun <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-              Pengalaman Digital.
-            </span>
-          </h1>
-          
-          <p className="text-lg md:text-xl text-slate-600 max-w-xl leading-relaxed">
-            Halo, saya <strong className="text-slate-800">{profil.nama_lengkap || 'Riley'}</strong>. 
-            Seorang {profil.headline || 'Web Developer'} yang berfokus pada desain antarmuka yang bersih, fungsional, dan responsif.
-          </p>
-          
-          <div className="pt-4 flex flex-col sm:flex-row items-center gap-4">
-            <a href="#karya" className="w-full sm:w-auto bg-slate-900 hover:bg-blue-600 text-white px-8 py-4 rounded-full font-semibold transition-all duration-300 shadow-lg hover:shadow-blue-500/30 flex items-center justify-center gap-2">
-              Lihat Karya <ChevronRight size={18} />
-            </a>
-            <a href="#kontak" className="w-full sm:w-auto bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-8 py-4 rounded-full font-semibold transition-all duration-300 shadow-sm flex items-center justify-center">
-              Hubungi Saya
-            </a>
-          </div>
-        </div>
+      {/* 🔥 FIX: Efek Neon HANYA muncul di Dark Mode (hidden dark:block) */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden hidden dark:block transition-opacity duration-500">
+        <div className="absolute top-[10%] left-[20%] w-[500px] h-[500px] bg-cyan-400/20 dark:bg-cyan-600/10 rounded-full blur-[120px]"></div>
+        <div className="absolute bottom-[20%] right-[10%] w-[400px] h-[400px] bg-purple-400/20 dark:bg-purple-600/10 rounded-full blur-[100px]"></div>
+      </div>
 
-        <div className="w-full md:w-5/12 flex justify-center animate-fade-up delay-200">
-          <div className="relative group">
-            <div className="absolute inset-0 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-[2rem] rotate-6 group-hover:rotate-12 transition-transform duration-500 opacity-20 blur-xl"></div>
-            <img src={heroImgUrl} alt="Foto Profil" className="relative w-72 h-72 md:w-96 md:h-96 object-cover rounded-[2rem] shadow-2xl border-4 border-white transition-transform duration-500 group-hover:-translate-y-2" />
-          </div>
-        </div>
-      </section>
-
-      {/* === 2. INFINITE SCROLLING MARQUEE (TECH STACK) === */}
-      <section className="py-10 border-y border-slate-200 bg-white overflow-hidden mt-10 animate-fade-up delay-300">
-        <div className="w-full inline-flex flex-nowrap overflow-hidden [mask-image:_linear-gradient(to_right,transparent_0,_black_128px,_black_calc(100%-128px),transparent_100%)]">
-          <div className="flex items-center justify-center md:justify-start [&_li]:mx-8 [&_img]:max-w-none animate-scroll whitespace-nowrap">
-            {/* Set 1 */}
-            <div className="flex items-center gap-12 text-slate-400 font-bold text-xl px-6">
-              <span className="flex items-center gap-2 hover:text-blue-500 transition-colors cursor-pointer"><Monitor /> React.js</span>
-              <span className="flex items-center gap-2 hover:text-blue-500 transition-colors cursor-pointer"><Globe /> Next.js</span>
-              <span className="flex items-center gap-2 hover:text-blue-500 transition-colors cursor-pointer"><Code2 /> Tailwind CSS</span>
-              <span className="flex items-center gap-2 hover:text-blue-500 transition-colors cursor-pointer"><Server /> Node.js</span>
-              <span className="flex items-center gap-2 hover:text-blue-500 transition-colors cursor-pointer"><Database /> TiDB Cloud</span>
-              <span className="flex items-center gap-2 hover:text-blue-500 transition-colors cursor-pointer"><Cpu /> TypeScript</span>
-            </div>
-            {/* Set 2 (Duplikat untuk efek infinite) */}
-            <div className="flex items-center gap-12 text-slate-400 font-bold text-xl px-6">
-              <span className="flex items-center gap-2 hover:text-blue-500 transition-colors cursor-pointer"><Monitor /> React.js</span>
-              <span className="flex items-center gap-2 hover:text-blue-500 transition-colors cursor-pointer"><Globe /> Next.js</span>
-              <span className="flex items-center gap-2 hover:text-blue-500 transition-colors cursor-pointer"><Code2 /> Tailwind CSS</span>
-              <span className="flex items-center gap-2 hover:text-blue-500 transition-colors cursor-pointer"><Server /> Node.js</span>
-              <span className="flex items-center gap-2 hover:text-blue-500 transition-colors cursor-pointer"><Database /> TiDB Cloud</span>
-              <span className="flex items-center gap-2 hover:text-blue-500 transition-colors cursor-pointer"><Cpu /> TypeScript</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* === 3. TENTANG & KEAHLIAN (Bento Grid) === */}
-      <section id="tentang" className="py-20 bg-[#F8FAFC]">
-        <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-12 gap-8">
-          
-          <div className="md:col-span-7 bg-white p-10 rounded-3xl border border-slate-100 hover:shadow-xl transition-shadow duration-300 animate-fade-up">
-            <h2 className="text-3xl font-bold mb-6 text-slate-800">Tentang Saya</h2>
-            <p className="text-slate-600 text-lg leading-relaxed mb-8">
-              {profil.tentang || "Membangun aplikasi yang tidak hanya berfungsi dengan baik, tetapi juga memberikan pengalaman visual yang memanjakan mata."}
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {data.services?.map((srv: any) => (
-                <div key={srv.id} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-start gap-3 hover:bg-blue-50 transition-colors">
-                  <div className="bg-blue-100 p-2 rounded-lg text-blue-600"><Briefcase size={20} /></div>
-                  <div>
-                    <h4 className="font-bold text-slate-800">{srv.nama_layanan}</h4>
-                    <p className="text-slate-500 text-sm mt-1">{srv.deskripsi}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="md:col-span-5 bg-slate-900 text-white p-10 rounded-3xl shadow-2xl shadow-slate-900/20 animate-fade-up delay-100">
-            <h2 className="text-3xl font-bold mb-8 flex items-center gap-2">
-              <Code2 className="text-blue-400" /> Keahlian Teknis
+      <div className="relative z-10 pt-20">
+        
+        {/* === 1. HERO SECTION === */}
+        <section className="px-6 max-w-5xl mx-auto py-24 md:py-32 flex flex-col gap-6">
+          <motion.div initial="hidden" animate="visible" variants={fadeUp}>
+            <p className="text-cyan-600 dark:text-cyan-400 font-bold tracking-[0.2em] uppercase text-sm mb-2">HELLO, I AM</p>
+            <h1 className="text-5xl md:text-8xl font-black leading-tight md:leading-none tracking-tight text-slate-900 dark:text-white transition-colors duration-500">
+              {firstName} <br/>
+              {lastName && (
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-blue-600 dark:from-cyan-400 dark:to-blue-600 drop-shadow-[0_0_15px_rgba(34,211,238,0.2)]">
+                  {lastName}
+                </span>
+              )}
+            </h1>
+            <h2 className="text-xl md:text-3xl font-medium mt-4">
+              <span className="text-slate-800 dark:text-white transition-colors duration-500">I am a </span> 
+              <span className="text-slate-500 dark:text-slate-400 transition-colors duration-500">{profil.headline || 'Web Developer'}</span>
             </h2>
-            <div className="space-y-6">
-              {data.skills?.map((skill: any) => (
-                <div key={skill.id}>
-                  <div className="flex justify-between font-semibold mb-2 text-sm">
-                    <span className="text-slate-200">{skill.nama_skill}</span>
-                    <span className="text-blue-400">{skill.persentase}%</span>
-                  </div>
-                  <div className="w-full bg-slate-700/50 rounded-full h-2 overflow-hidden">
-                    <div className="bg-gradient-to-r from-blue-500 to-cyan-400 h-2 rounded-full relative" style={{ width: `${skill.persentase}%` }}>
-                      <div className="absolute right-0 top-0 bottom-0 w-4 bg-white/30 blur-sm"></div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <p className="max-w-2xl text-slate-600 dark:text-slate-400 text-base md:text-lg leading-relaxed mt-6 transition-colors duration-500">
+              {profil.tentang || 'Selamat datang di portofolio saya.'}
+            </p>
+          </motion.div>
+        </section>
+
+        {/* === 2. STATS SECTION === */}
+        <motion.section 
+          initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeUp}
+          className="border-y border-slate-200 dark:border-white/5 bg-white/50 dark:bg-white/[0.02] py-16 transition-colors duration-500"
+        >
+          <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12 text-center divide-y md:divide-y-0 md:divide-x divide-slate-200 dark:divide-white/10">
+            <div className="flex flex-col items-center justify-center pt-8 md:pt-0">
+              <h3 className="text-5xl md:text-6xl font-black text-cyan-600 dark:text-cyan-400 drop-shadow-[0_0_15px_rgba(34,211,238,0.3)] mb-2">2+</h3>
+              <p className="text-slate-500 dark:text-slate-400 uppercase tracking-widest text-xs md:text-sm font-semibold transition-colors duration-500">Years Experience</p>
+            </div>
+            <div className="flex flex-col items-center justify-center pt-8 md:pt-0">
+              <h3 className="text-5xl md:text-6xl font-black text-cyan-600 dark:text-cyan-400 drop-shadow-[0_0_15px_rgba(34,211,238,0.3)] mb-2">10+</h3>
+              <p className="text-slate-500 dark:text-slate-400 uppercase tracking-widest text-xs md:text-sm font-semibold transition-colors duration-500">Completed Projects</p>
+            </div>
+            <div className="flex flex-col items-center justify-center pt-8 md:pt-0">
+              <h3 className="text-5xl md:text-6xl font-black text-cyan-600 dark:text-cyan-400 drop-shadow-[0_0_15px_rgba(34,211,238,0.3)] mb-2">5+</h3>
+              <p className="text-slate-500 dark:text-slate-400 uppercase tracking-widest text-xs md:text-sm font-semibold transition-colors duration-500">Certificates Won</p>
             </div>
           </div>
-        </div>
-      </section>
+        </motion.section>
 
-      {/* === 4. PERJALANAN KARIR (Interactive Timeline) === */}
-      <section className="py-20 bg-white">
-        <div className="max-w-4xl mx-auto px-6">
-          <div className="text-center mb-16 animate-fade-up">
-            <h2 className="text-4xl font-black text-slate-800 mb-4">Perjalanan Karir</h2>
-            <p className="text-slate-500 text-lg">Jejak langkah profesional dan pengalaman yang membentuk saya.</p>
-          </div>
-          
-          <div className="relative border-l-4 border-blue-100 ml-4 md:ml-0 md:mx-auto">
-            {data.experiences?.map((exp: any, idx: number) => (
-              <div key={exp.id} className="mb-12 ml-8 md:ml-12 relative animate-fade-up" style={{ animationDelay: `${idx * 100}ms` }}>
-                <span className="absolute -left-[45px] md:-left-[61px] top-1 h-6 w-6 rounded-full border-4 border-white bg-blue-500 shadow-md"></span>
-                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow group">
-                  <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 font-bold text-sm rounded-full mb-3">
-                    {exp.tahun}
-                  </span>
-                  <h3 className="text-2xl font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{exp.posisi}</h3>
-                  <h4 className="text-lg font-semibold text-slate-500 mb-3">{exp.perusahaan}</h4>
-                  <p className="text-slate-600 leading-relaxed">{exp.deskripsi}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* === 5. PORTOFOLIO SECTION === */}
-      <section id="karya" className="py-24 bg-[#F8FAFC]">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16 animate-fade-up">
-            <h2 className="text-4xl font-black text-slate-800 mb-4">Mahakarya Terkini</h2>
-            <p className="text-slate-500 text-lg max-w-2xl mx-auto">Seleksi proyek terbaik yang merepresentasikan kualitas dan dedikasi saya.</p>
-          </div>
+        {/* === 3. FEATURED PROJECTS === */}
+        <section className="py-24 max-w-6xl mx-auto px-6 text-center">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
+            <p className="text-cyan-600 dark:text-cyan-400 font-bold tracking-[0.2em] uppercase text-xs mb-2">MY WORKS</p>
+            <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-10 transition-colors duration-500">
+              Featured <span className="text-cyan-500">Projects</span>
+            </h2>
+          </motion.div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {data.karya?.map((item: any, idx: number) => (
-              <div key={item.id} className="group bg-white rounded-3xl overflow-hidden border border-slate-100 hover:shadow-2xl hover:shadow-blue-500/10 hover:-translate-y-2 transition-all duration-500 animate-fade-up" style={{ animationDelay: `${(idx + 1) * 100}ms` }}>
-                <div className="h-60 overflow-hidden relative">
-                  <div className="absolute inset-0 bg-slate-900/20 group-hover:bg-transparent transition-colors duration-500 z-10"></div>
-                  <img src={item.image_url || 'https://via.placeholder.com/600'} alt={item.judul} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" />
-                  <div className="absolute top-4 left-4 z-20 bg-white/90 backdrop-blur-sm text-slate-800 text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+            {data.karya?.slice(0, 3).map((item: any, index: number) => (
+              <motion.div 
+                key={item.id} 
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.2 }}
+                className="bg-white dark:bg-[#0c0c1d] rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden group hover:border-cyan-500/50 transition-all shadow-lg hover:shadow-xl dark:shadow-2xl"
+              >
+                <div className="h-48 overflow-hidden relative">
+                  <div className="absolute inset-0 bg-slate-900/10 dark:bg-slate-900/40 group-hover:bg-transparent transition-colors duration-500 z-10"></div>
+                  <img src={item.image_url || 'https://via.placeholder.com/600x400'} alt={item.judul} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <div className="absolute top-4 left-4 z-20 bg-white/90 dark:bg-[#050510]/80 backdrop-blur-md text-cyan-700 dark:text-cyan-400 text-xs font-bold px-3 py-1 rounded-full border border-cyan-200 dark:border-cyan-900/50 shadow-sm">
                     {item.kategori}
                   </div>
                 </div>
-                <div className="p-8">
-                  <h3 className="font-bold text-xl text-slate-800 mb-3 group-hover:text-blue-600 transition-colors">{item.judul}</h3>
-                  <p className="text-slate-500 mb-6 line-clamp-3 text-sm leading-relaxed">{item.deskripsi}</p>
+                <div className="p-6 text-left">
+                  <h3 className="font-bold text-xl text-slate-900 dark:text-white mb-2 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">{item.judul}</h3>
+                  <p className="text-slate-600 dark:text-slate-500 text-sm line-clamp-3 mb-6 transition-colors duration-500">{item.deskripsi}</p>
                   {item.link_project && (
-                    <a href={item.link_project} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-blue-600 font-semibold hover:text-blue-800 transition text-sm">
-                      Lihat Proyek <ExternalLink size={16} />
+                    <a href={item.link_project} target="_blank" rel="noreferrer" className="text-cyan-600 dark:text-cyan-400 text-sm font-semibold flex items-center gap-2 hover:text-cyan-500 dark:hover:text-cyan-300 transition-colors">
+                      Lihat Proyek <ExternalLink size={14} />
                     </a>
                   )}
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* === 6. FOOTER === */}
-      <footer id="kontak" className="py-12 bg-white border-t border-slate-100">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="text-slate-800 font-black text-2xl tracking-tighter">
-            <span className="text-blue-600">&lt;/&gt;</span> Riley.
-          </div>
-          <div className="flex gap-4">
-            {profil.email && (
-              <a href={`mailto:${profil.email}`} className="bg-slate-50 p-3 rounded-full text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors">
-                <Mail size={20} />
-              </a>
+        {/* === 4. MY SERVICES === */}
+        <section className="py-24 max-w-6xl mx-auto px-6 text-center border-t border-slate-200 dark:border-white/5 transition-colors duration-500">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
+            <p className="text-cyan-600 dark:text-cyan-400 font-bold tracking-[0.2em] uppercase text-xs mb-2">WHAT I DO</p>
+            <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-16 transition-colors duration-500">
+              My <span className="text-cyan-500">Services</span>
+            </h2>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {services.length > 0 ? (
+              services.map((service: any, index: number) => {
+                let ServiceIcon = Database;
+                if (index % 3 === 1) ServiceIcon = Cpu;
+                if (index % 3 === 2) ServiceIcon = Brain;
+
+                return (
+                  <motion.div 
+                    key={service.id} 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: index * 0.15 }}
+                    className="bg-white dark:bg-[#0c0c1d] border border-slate-200 dark:border-slate-800 rounded-3xl p-8 hover:border-cyan-500 dark:hover:border-cyan-500 transition-all duration-300 group shadow-lg hover:shadow-cyan-500/20 text-center"
+                  >
+                    <ServiceIcon className="w-12 h-12 text-cyan-600 dark:text-cyan-400 mx-auto mb-6 group-hover:scale-110 group-hover:drop-shadow-[0_0_10px_#22d3ee] transition-all duration-300" />
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4 transition-colors duration-500">{service.nama_layanan}</h3>
+                    <p className="text-slate-600 dark:text-slate-500 text-sm leading-relaxed transition-colors duration-500">{service.deskripsi}</p>
+                  </motion.div>
+                );
+              })
+            ) : (
+              <p className="col-span-3 text-slate-500">Belum ada layanan yang ditambahkan dari Admin.</p>
             )}
           </div>
-          <p className="text-slate-400 text-sm font-medium">© {new Date().getFullYear()} {profil.nama_lengkap || 'Riley'}. All rights reserved.</p>
-        </div>
-      </footer>
+        </section>
 
-      {/* Chatbot Asisten */}
+        {/* === 5. LET'S CONNECT === */}
+        <section className="py-24 max-w-3xl mx-auto px-6">
+          <motion.div 
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7 }}
+            className="bg-white dark:bg-[#0a0a1a] border border-slate-200 dark:border-slate-800 rounded-[2rem] p-8 md:p-12 shadow-2xl dark:shadow-cyan-900/10 relative overflow-hidden text-center transition-colors duration-500"
+          >
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-50"></div>
+            
+            <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2 transition-colors duration-500">Let's Connect</h2>
+            <p className="text-slate-600 dark:text-slate-400 text-sm mb-10 transition-colors duration-500">Punya ide proyek atau sekadar ingin menyapa? Jangan ragu untuk menghubungi saya!</p>
+
+            <a href="/contact" className="inline-flex w-full sm:w-auto px-10 bg-gradient-to-r from-cyan-600 to-purple-600 dark:from-cyan-500 dark:to-purple-600 hover:opacity-90 text-white font-bold py-4 rounded-xl items-center justify-center gap-2 transition-all shadow-lg shadow-cyan-500/30 hover:scale-105">
+              <Send size={18} /> HUBUNGI SAYA SEKARANG
+            </a>
+          </motion.div>
+        </section>
+
+      </div>
+      
       <Chatbot />
     </main>
   );
