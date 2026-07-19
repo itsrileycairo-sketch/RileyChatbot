@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
-  ArrowRight, Github, Linkedin, Mail, Instagram, ExternalLink,
+  ArrowRight, Mail, ExternalLink,
   Code, Layout, Smartphone, Globe, Terminal, Database, Shield, Zap
 } from "lucide-react";
 import InteractiveBackground from "@/components/InteractiveBackground";
@@ -161,16 +161,22 @@ export default async function Home() {
                   <p>{tentang}</p>
                 </div>
                 
-                <div className="pt-6 border-t border-slate-200 dark:border-slate-800 flex gap-4">
-                  {[
-                    { icon: Github, link: github, color: "hover:bg-slate-900 hover:text-white dark:hover:bg-white dark:hover:text-slate-900" },
-                    { icon: Linkedin, link: linkedin, color: "hover:bg-blue-600 hover:text-white" },
-                    { icon: Instagram, link: instagram, color: "hover:bg-pink-600 hover:text-white" }
-                  ].map((social, i) => (
-                    <a key={i} href={social.link} target="_blank" rel="noreferrer" className={`w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 transition-all duration-300 hover:scale-110 hover:-translate-y-1 shadow-sm hover:shadow-xl ${social.color}`}>
-                      <social.icon size={24} />
+                <div className="pt-6 border-t border-slate-200 dark:border-slate-800 flex flex-wrap gap-4">
+                  {github && github !== "#" && (
+                    <a href={github} target="_blank" rel="noreferrer" className="px-6 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 font-bold transition-all duration-300 hover:scale-105 shadow-sm hover:shadow-md hover:bg-slate-900 hover:text-white dark:hover:bg-white dark:hover:text-slate-900">
+                      GitHub
                     </a>
-                  ))}
+                  )}
+                  {linkedin && linkedin !== "#" && (
+                    <a href={linkedin} target="_blank" rel="noreferrer" className="px-6 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 font-bold transition-all duration-300 hover:scale-105 shadow-sm hover:shadow-md hover:bg-blue-600 hover:text-white">
+                      LinkedIn
+                    </a>
+                  )}
+                  {instagram && instagram !== "#" && (
+                    <a href={instagram} target="_blank" rel="noreferrer" className="px-6 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 font-bold transition-all duration-300 hover:scale-105 shadow-sm hover:shadow-md hover:bg-pink-600 hover:text-white">
+                      Instagram
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
