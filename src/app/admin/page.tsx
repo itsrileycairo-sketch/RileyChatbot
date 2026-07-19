@@ -3,40 +3,14 @@
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import {
-  PlusCircle,
-  Trash2,
-  LayoutDashboard,
-  Settings,
-  Code,
-  Save,
-  Image as ImageIcon,
-  Link as LinkIcon,
-  UploadCloud,
-  X,
-  Lock,
-  Unlock,
-  Briefcase,
-  Star,
-  FileText,
-  Menu,
-  BookOpen,
-  Tag,
-  MessageSquare,
-  LineChart as ActivityIcon,
-  Sun,
-  Moon,
-  ExternalLink,
+  PlusCircle, Trash2, LayoutDashboard, Settings, Code, Save,
+  Image as ImageIcon, Link as LinkIcon, UploadCloud, X, Lock,
+  Unlock, Briefcase, Star, FileText, Menu, BookOpen, Tag,
+  MessageSquare, LineChart as ActivityIcon, Sun, Moon, ExternalLink,
 } from "lucide-react";
 import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer,
 } from "recharts";
 import { signIn, signOut, useSession } from "next-auth/react";
 import Link from "next/link";
@@ -45,6 +19,8 @@ export default function AdminDashboard() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const { data: session, status } = useSession();
+  
+  // State form login dibiarkan KOSONG sebagai perlindungan awal
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState(false);
@@ -66,16 +42,10 @@ export default function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [webContent, setWebContent] = useState({
-    namaLengkap: "",
-    headline: "",
-    tentang: "",
-    email: "",
-    heroImage: "",
-    aboutImage: "",
-    github: "",
-    linkedin: "",
-    instagram: "",
+    namaLengkap: "", headline: "", tentang: "", email: "",
+    heroImage: "", aboutImage: "", github: "", linkedin: "", instagram: "",
   });
+  
   const [portfolios, setPortfolios] = useState<any[]>([]);
   const [skills, setSkills] = useState<any[]>([]);
   const [experiences, setExperiences] = useState<any[]>([]);
@@ -83,39 +53,24 @@ export default function AdminDashboard() {
   const [blogs, setBlogs] = useState<any[]>([]);
   const [pricing, setPricing] = useState<any[]>([]);
   const [pesanMasuk, setPesanMasuk] = useState<any[]>([]);
-  
-  // 🔥 FIX TYPESCRIPT: Mendeklarasikan bahwa wadah ini berisi Array of Any
   const [analyticsData, setAnalyticsData] = useState<{ chartData: any[]; topPages: any[] }>({
-    chartData: [],
-    topPages: [],
+    chartData: [], topPages: [],
   });
 
   const [isAddingKarya, setIsAddingKarya] = useState(false);
   const [newKarya, setNewKarya] = useState({
-    judul: "",
-    kategori: "",
-    deskripsi: "",
-    image_url: "",
-    link_project: "",
+    judul: "", kategori: "", deskripsi: "", image_url: "", link_project: "",
   });
   const [newSkill, setNewSkill] = useState({ nama_skill: "", persentase: "" });
   const [newExp, setNewExp] = useState({
-    posisi: "",
-    perusahaan: "",
-    tahun: "",
-    deskripsi: "",
+    posisi: "", perusahaan: "", tahun: "", deskripsi: "",
   });
   const [newService, setNewService] = useState({
-    nama_layanan: "",
-    deskripsi: "",
+    nama_layanan: "", deskripsi: "",
   });
   const [newBlog, setNewBlog] = useState({ judul: "", konten_lengkap: "" });
   const [newPricing, setNewPricing] = useState({
-    nama_paket: "",
-    harga: "",
-    deskripsi: "",
-    fitur: "",
-    is_popular: 0,
+    nama_paket: "", harga: "", deskripsi: "", fitur: "", is_popular: 0,
   });
 
   useEffect(() => {
@@ -255,11 +210,7 @@ export default function AdminDashboard() {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(
-      field === "heroImage"
-        ? "hero"
-        : field === "aboutImage"
-          ? "about"
-          : "karya",
+      field === "heroImage" ? "hero" : field === "aboutImage" ? "about" : "karya",
     );
     const formData = new FormData();
     formData.append("file", file);
@@ -321,11 +272,7 @@ export default function AdminDashboard() {
         alert("Karya berhasil ditambahkan!");
         setIsAddingKarya(false);
         setNewKarya({
-          judul: "",
-          kategori: "",
-          deskripsi: "",
-          image_url: "",
-          link_project: "",
+          judul: "", kategori: "", deskripsi: "", image_url: "", link_project: "",
         });
         fetchSemuaData();
       }
@@ -355,7 +302,6 @@ export default function AdminDashboard() {
   if (!session) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-[#050510] dark:via-[#0a0a18] dark:to-[#050510] flex flex-col items-center justify-center p-4 relative overflow-hidden transition-colors duration-500">
-        {/* Animated background elements */}
         <div className="absolute inset-0 z-0">
           <div className="absolute top-[-15%] left-[-15%] w-[600px] h-[600px] bg-cyan-500/10 dark:bg-cyan-600/10 rounded-full blur-[150px] animate-[float_8s_ease-in-out_infinite]"></div>
           <div className="absolute bottom-[-15%] right-[-15%] w-[600px] h-[600px] bg-purple-500/10 dark:bg-purple-600/10 rounded-full blur-[150px] animate-[float_10s_ease-in-out_infinite_2s]"></div>
