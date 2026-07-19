@@ -10,9 +10,9 @@ import VisitorTracker from "@/components/VisitorTracker";
 // 🔥 1. FUNGSI UNTUK MENGAMBIL DATA DARI DATABASE TiDB
 async function getProfileData() {
   try {
-    // Kita panggil API profile yang sudah kita buat
-    const res = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/profile`, { 
-      cache: 'no-store' // Jangan di-cache, ambil data terbaru terus
+    // KITA KUNCI ALAMAT ASLINYA DI SINI BIAR GAK NYASAR KE LOCALHOST!
+    const res = await fetch('https://riley-chatbot.vercel.app/api/profile', { 
+      cache: 'no-store' 
     });
     if (!res.ok) return null;
     return await res.json();
