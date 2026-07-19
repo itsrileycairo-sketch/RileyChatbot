@@ -2,51 +2,43 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
-    const data = await req.formData();
-    const file: File | null = data.get('file') as unknown as File;
+    const formData = await req.formData();
+    const file = formData.get('file') as File;
 
     if (!file) {
       return NextResponse.json({ success: false, error: 'Tidak ada file' }, { status: 400 });
     }
 
-    const IMGBB_API_KEY = process.env.IMGBB_API_KEY;
+    // 🔥 KITA TEMPEL LANGSUNG KUNCINYA DI SINI! (Bebas dari error Vercel)
+    const IMGBB_API_KEY = "b3aa47bf0a03d83d985e9fab9cdf8e61";
 
-    if (!IMGBB_API_KEY) {
-      console.error("ALARM: IMGBB_API_KEY tidak ada!");
-      return NextResponse.json({ success: false, error: 'API Key ImgBB hilang' }, { status: 500 });
-    }
-
-    // 1. Ubah gambar jadi Base64 yang bersih
+    // 1. Ubah file jadi teks Base64 murni
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     const base64Image = buffer.toString('base64');
 
-    // 2. Gunakan FormData bawaan server (paling stabil untuk file besar)
-    const formData = new FormData();
-    // Kirim string base64 murni ke field 'image'
-    formData.append('image', base64Image); 
+    // 2. Buat paket kiriman khusus untuk ImgBB
+    const imgbbData = new FormData();
+    imgbbData.append('key', IMGBB_API_KEY);
+    imgbbData.append('image', base64Image);
 
-    // 3. Eksekusi ke ImgBB tanpa custom Header (biarkan fetch mengatur boundary otomatis)
-    const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+    // 3. Tembak ke satelit ImgBB!
+    const response = await fetch('https://api.imgbb.com/1/upload', {
       method: 'POST',
-      body: formData,
+      body: imgbbData,
     });
 
-    const imgbbData = await imgbbRes.json();
+    const result = await response.json();
 
-    if (imgbbData.success) {
-      // 4. BERHASIL! Kembalikan link gambar
-      return NextResponse.json({ 
-        success: true, 
-        fileUrl: imgbbData.data.url 
-      });
+    if (result.success) {
+      // 🚀 BERHASIL! Kembalikan link ke halaman Admin
+      return NextResponse.json({ success: true, fileUrl: result.data.url });
     } else {
-      console.error("ImgBB Menolak (dengan pesan):", imgbbData);
-      return NextResponse.json({ success: false, error: imgbbData.error?.message || 'Gagal upload' }, { status: 500 });
+      console.error("ImgBB Menolak:", result);
+      return NextResponse.json({ success: false, error: 'Ditolak ImgBB' }, { status: 400 });
     }
-
-  } catch (e: any) {
-    console.error("Error Upload Server Internal:", e);
-    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+  } catch (error: any) {
+    console.error("Internal Server Error:", error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
