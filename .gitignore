@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 🔥 MENGABAIKAN FOLDER UPLOADS LOKAL (Agar gambar sampah tidak masuk GitHub)
+public/uploads/
