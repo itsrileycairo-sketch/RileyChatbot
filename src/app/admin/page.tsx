@@ -19,33 +19,23 @@ export default function AdminDashboard() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const { data: session, status } = useSession();
-  
-  // State form login dibiarkan KOSONG sebagai perlindungan awal
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const [activeTab, setActiveTab] = useState<
-    | "analytics"
-    | "settings"
-    | "portfolio"
-    | "resume"
-    | "blog"
-    | "pricing"
-    | "pesan"
+    | "analytics" | "settings" | "portfolio" | "resume"
+    | "blog" | "pricing" | "pesan"
   >("analytics");
   const [isSaving, setIsSaving] = useState(false);
-  const [uploading, setUploading] = useState<"hero" | "about" | "karya" | null>(
-    null,
-  );
+  const [uploading, setUploading] = useState<"hero" | "about" | "karya" | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [webContent, setWebContent] = useState({
     namaLengkap: "", headline: "", tentang: "", email: "",
     heroImage: "", aboutImage: "", github: "", linkedin: "", instagram: "",
   });
-  
   const [portfolios, setPortfolios] = useState<any[]>([]);
   const [skills, setSkills] = useState<any[]>([]);
   const [experiences, setExperiences] = useState<any[]>([]);
@@ -53,6 +43,7 @@ export default function AdminDashboard() {
   const [blogs, setBlogs] = useState<any[]>([]);
   const [pricing, setPricing] = useState<any[]>([]);
   const [pesanMasuk, setPesanMasuk] = useState<any[]>([]);
+  
   const [analyticsData, setAnalyticsData] = useState<{ chartData: any[]; topPages: any[] }>({
     chartData: [], topPages: [],
   });
@@ -128,8 +119,7 @@ export default function AdminDashboard() {
           parsedAnalytics.chartData?.map((item: any) => ({
             ...item,
             date: new Date(item.date).toLocaleDateString("id-ID", {
-              day: "numeric",
-              month: "short",
+              day: "numeric", month: "short",
             }),
           })) || [];
         setAnalyticsData({
@@ -147,9 +137,7 @@ export default function AdminDashboard() {
     setIsLoggingIn(true);
     setLoginError(false);
     const res = await signIn("credentials", {
-      redirect: false,
-      username: username,
-      password: password,
+      redirect: false, username: username, password: password,
     });
     if (res?.error) {
       setLoginError(true);
@@ -157,11 +145,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleAddDynamic = async (
-    table: string,
-    data: any,
-    resetForm: () => void,
-  ) => {
+  const handleAddDynamic = async (table: string, data: any, resetForm: () => void) => {
     setIsSaving(true);
     try {
       const res = await fetch("/api/admin-data", {
@@ -203,30 +187,42 @@ export default function AdminDashboard() {
     }
   };
 
+  // 🔥 JURUS PAMUNGKAS: FUNGSI UPLOAD DIROMBAK TOTAL!
   const handleFileUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     field: "heroImage" | "aboutImage" | "karyaImage",
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(
-      field === "heroImage" ? "hero" : field === "aboutImage" ? "about" : "karya",
-    );
+    setUploading(field === "heroImage" ? "hero" : field === "aboutImage" ? "about" : "karya");
+
+    // Bikin paket pengiriman khusus ImgBB
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("image", file); // ImgBB mensyaratkan nama field "image"
+
     try {
-      const res = await fetch("/api/upload", {
+      // KITA TEMBAK LANGSUNG KE IMGBB DARI BROWSER! BYPASS VERCEL!
+      // Menggunakan kunci API ImgBB milik Kak Riley
+      const res = await fetch("https://api.imgbb.com/1/upload?key=b3aa47bf0a03d83d985e9fab9cdf8e61", {
         method: "POST",
-        body: formData,
+        body: formData, // Kirim file mentah langsung
       });
+      
       const data = await res.json();
+
       if (data.success) {
-        if (field === "karyaImage")
-          setNewKarya((prev) => ({ ...prev, image_url: data.fileUrl }));
-        else setWebContent((prev) => ({ ...prev, [field]: data.fileUrl }));
-      } else alert("Gagal unggah gambar!");
+        // Berhasil! Ambil link URL dari ImgBB dan pasang di layar
+        const uploadedUrl = data.data.url;
+        if (field === "karyaImage") {
+          setNewKarya((prev) => ({ ...prev, image_url: uploadedUrl }));
+        } else {
+          setWebContent((prev) => ({ ...prev, [field]: uploadedUrl }));
+        }
+      } else {
+        alert("Gagal unggah gambar ke ImgBB: " + (data.error?.message || "Kesalahan API"));
+      }
     } catch (err) {
-      alert("Terjadi kesalahan unggah.");
+      alert("Terjadi kesalahan sistem saat menghubungi ImgBB.");
     } finally {
       setUploading(null);
     }
