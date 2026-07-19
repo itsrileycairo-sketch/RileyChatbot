@@ -1,7 +1,4 @@
 import { NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
-import path from 'path';
 
 export async function POST(req: Request) {
   try {
@@ -12,28 +9,45 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Tidak ada file' }, { status: 400 });
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    // 🚀 1. Panggil Kunci Rahasia ImgBB dari Vercel / .env
+    const IMGBB_API_KEY = process.env.IMGBB_API_KEY;
 
-    // Buat nama file unik
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const filename = uniqueSuffix + path.extname(file.name);
-    
-    // Tentukan jalur folder
-    const uploadDir = path.join(process.cwd(), 'public/uploads');
-
-    // 🚀 PERBAIKAN KUNCI: Cek dan buat folder otomatis jika belum ada!
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
+    if (!IMGBB_API_KEY) {
+      console.error("ALARM: IMGBB_API_KEY tidak ditemukan!");
+      return NextResponse.json({ success: false, error: 'Kunci API ImgBB hilang' }, { status: 500 });
     }
 
-    // Simpan file
-    const filepath = path.join(uploadDir, filename);
-    await writeFile(filepath, buffer);
+    // 🚀 2. Ubah file gambar menjadi teks Base64 (Bahasa yang dimengerti ImgBB)
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    const base64Image = buffer.toString('base64');
 
-    return NextResponse.json({ success: true, fileUrl: `/uploads/${filename}` });
+    // 🚀 3. Siapkan paket untuk dikirim ke kurir ImgBB
+    const formData = new FormData();
+    formData.append('image', base64Image);
+
+    // 🚀 4. Tembakkan gambar ke server ImgBB!
+    const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    const imgbbData = await imgbbRes.json();
+
+    if (imgbbData.success) {
+      // 🚀 5. SUKSES! Kembalikan link URL publik dari ImgBB ke Dasbor Admin
+      return NextResponse.json({ 
+        success: true, 
+        fileUrl: imgbbData.data.url // Ini link gambar permanennya!
+      });
+    } else {
+      // Jika ImgBB menolak (misal gambar terlalu besar / API salah)
+      console.error("ImgBB Error:", imgbbData);
+      return NextResponse.json({ success: false, error: 'ImgBB menolak gambar' }, { status: 500 });
+    }
+
   } catch (e: any) {
-    console.error("Detail Error Upload:", e);
+    console.error("Detail Error Upload Server:", e);
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 }
