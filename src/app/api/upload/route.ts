@@ -6,48 +6,44 @@ export async function POST(req: Request) {
     const file: File | null = data.get('file') as unknown as File;
 
     if (!file) {
-      return NextResponse.json({ success: false, error: 'Tidak ada file' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Tidak ada file yang dipilih' }, { status: 400 });
     }
 
-    // 🚀 1. Panggil Kunci Rahasia ImgBB dari Vercel / .env
+    // 1. Ambil API Key dari Vercel / .env
     const IMGBB_API_KEY = process.env.IMGBB_API_KEY;
 
     if (!IMGBB_API_KEY) {
-      console.error("ALARM: IMGBB_API_KEY tidak ditemukan!");
-      return NextResponse.json({ success: false, error: 'Kunci API ImgBB hilang' }, { status: 500 });
+      console.error("ALARM: IMGBB_API_KEY tidak ditemukan di environment variables!");
+      return NextResponse.json({ success: false, error: 'API Key ImgBB tidak diatur' }, { status: 500 });
     }
 
-    // 🚀 2. Ubah file gambar menjadi teks Base64 (Bahasa yang dimengerti ImgBB)
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const base64Image = buffer.toString('base64');
+    // 🚀 2. CARA BARU YANG 100% AMPUH: Kirim sebagai Blob/File mentah!
+    // Kita bungkus file asli langsung ke dalam FormData baru untuk ImgBB
+    const formDataToImgbb = new FormData();
+    formDataToImgbb.append('image', file); 
 
-    // 🚀 3. Siapkan paket untuk dikirim ke kurir ImgBB
-    const formData = new FormData();
-    formData.append('image', base64Image);
-
-    // 🚀 4. Tembakkan gambar ke server ImgBB!
+    // 🚀 3. Tembakkan ke server ImgBB
     const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
       method: 'POST',
-      body: formData,
+      body: formDataToImgbb, // Kirim file mentah
     });
 
     const imgbbData = await imgbbRes.json();
 
     if (imgbbData.success) {
-      // 🚀 5. SUKSES! Kembalikan link URL publik dari ImgBB ke Dasbor Admin
+      // 🚀 4. SUKSES! Dapatkan link permanen
+      // ImgBB memberikan link langsung di dalam objek data.url
       return NextResponse.json({ 
         success: true, 
-        fileUrl: imgbbData.data.url // Ini link gambar permanennya!
+        fileUrl: imgbbData.data.url 
       });
     } else {
-      // Jika ImgBB menolak (misal gambar terlalu besar / API salah)
-      console.error("ImgBB Error:", imgbbData);
-      return NextResponse.json({ success: false, error: 'ImgBB menolak gambar' }, { status: 500 });
+      console.error("ImgBB Menolak File:", imgbbData);
+      return NextResponse.json({ success: false, error: imgbbData.error?.message || 'ImgBB gagal memproses' }, { status: 500 });
     }
 
   } catch (e: any) {
-    console.error("Detail Error Upload Server:", e);
+    console.error("Server Error di /api/upload:", e);
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 }
