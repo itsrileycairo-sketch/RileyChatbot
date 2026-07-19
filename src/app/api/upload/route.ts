@@ -6,44 +6,50 @@ export async function POST(req: Request) {
     const file: File | null = data.get('file') as unknown as File;
 
     if (!file) {
-      return NextResponse.json({ success: false, error: 'Tidak ada file yang dipilih' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Tidak ada file' }, { status: 400 });
     }
 
-    // 1. Ambil API Key dari Vercel / .env
     const IMGBB_API_KEY = process.env.IMGBB_API_KEY;
 
     if (!IMGBB_API_KEY) {
-      console.error("ALARM: IMGBB_API_KEY tidak ditemukan di environment variables!");
-      return NextResponse.json({ success: false, error: 'API Key ImgBB tidak diatur' }, { status: 500 });
+      console.error("ALARM: IMGBB_API_KEY tidak ada!");
+      return NextResponse.json({ success: false, error: 'Kunci API ImgBB hilang' }, { status: 500 });
     }
 
-    // 🚀 2. CARA BARU YANG 100% AMPUH: Kirim sebagai Blob/File mentah!
-    // Kita bungkus file asli langsung ke dalam FormData baru untuk ImgBB
-    const formDataToImgbb = new FormData();
-    formDataToImgbb.append('image', file); 
+    // 🚀 1. Ubah Gambar jadi Teks Raksasa (Base64)
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    const base64Image = buffer.toString('base64');
 
-    // 🚀 3. Tembakkan ke server ImgBB
+    // 🚀 2. CARA PALING AMPUH: Gunakan URLSearchParams alih-alih FormData
+    // Ini memaksa browser mengirim teks murni tanpa merusak formatnya
+    const urlEncodedData = new URLSearchParams();
+    urlEncodedData.append('image', base64Image);
+
+    // 🚀 3. Tembak ke ImgBB dengan Header khusus
     const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
       method: 'POST',
-      body: formDataToImgbb, // Kirim file mentah
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: urlEncodedData,
     });
 
     const imgbbData = await imgbbRes.json();
 
     if (imgbbData.success) {
-      // 🚀 4. SUKSES! Dapatkan link permanen
-      // ImgBB memberikan link langsung di dalam objek data.url
+      // 🚀 4. SUKSES BESAR!
       return NextResponse.json({ 
         success: true, 
         fileUrl: imgbbData.data.url 
       });
     } else {
-      console.error("ImgBB Menolak File:", imgbbData);
-      return NextResponse.json({ success: false, error: imgbbData.error?.message || 'ImgBB gagal memproses' }, { status: 500 });
+      console.error("ImgBB Menolak:", imgbbData);
+      return NextResponse.json({ success: false, error: 'Ditolak ImgBB' }, { status: 500 });
     }
 
   } catch (e: any) {
-    console.error("Server Error di /api/upload:", e);
+    console.error("Error Upload Server:", e);
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 }
