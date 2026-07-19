@@ -13,43 +13,40 @@ export async function POST(req: Request) {
 
     if (!IMGBB_API_KEY) {
       console.error("ALARM: IMGBB_API_KEY tidak ada!");
-      return NextResponse.json({ success: false, error: 'Kunci API ImgBB hilang' }, { status: 500 });
+      return NextResponse.json({ success: false, error: 'API Key ImgBB hilang' }, { status: 500 });
     }
 
-    // 🚀 1. Ubah Gambar jadi Teks Raksasa (Base64)
+    // 1. Ubah gambar jadi Base64 yang bersih
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     const base64Image = buffer.toString('base64');
 
-    // 🚀 2. CARA PALING AMPUH: Gunakan URLSearchParams alih-alih FormData
-    // Ini memaksa browser mengirim teks murni tanpa merusak formatnya
-    const urlEncodedData = new URLSearchParams();
-    urlEncodedData.append('image', base64Image);
+    // 2. Gunakan FormData bawaan server (paling stabil untuk file besar)
+    const formData = new FormData();
+    // Kirim string base64 murni ke field 'image'
+    formData.append('image', base64Image); 
 
-    // 🚀 3. Tembak ke ImgBB dengan Header khusus
+    // 3. Eksekusi ke ImgBB tanpa custom Header (biarkan fetch mengatur boundary otomatis)
     const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: urlEncodedData,
+      body: formData,
     });
 
     const imgbbData = await imgbbRes.json();
 
     if (imgbbData.success) {
-      // 🚀 4. SUKSES BESAR!
+      // 4. BERHASIL! Kembalikan link gambar
       return NextResponse.json({ 
         success: true, 
         fileUrl: imgbbData.data.url 
       });
     } else {
-      console.error("ImgBB Menolak:", imgbbData);
-      return NextResponse.json({ success: false, error: 'Ditolak ImgBB' }, { status: 500 });
+      console.error("ImgBB Menolak (dengan pesan):", imgbbData);
+      return NextResponse.json({ success: false, error: imgbbData.error?.message || 'Gagal upload' }, { status: 500 });
     }
 
   } catch (e: any) {
-    console.error("Error Upload Server:", e);
+    console.error("Error Upload Server Internal:", e);
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 }
