@@ -19,18 +19,33 @@ export const viewport: Viewport = {
   userScalable: false, 
 };
 
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+// 🔥 JURUS METADATA SAKTI (Biar Thumbnail WA Nongol!)
 export const metadata: Metadata = {
   title: "Nolan Portfolio | Full Stack Developer",
   description: "Mahakarya digital oleh Nolan Fortino",
+  // PENTING: Ganti URL ini otomatis ngebimbing WhatsApp ke alamat asli lu!
+  metadataBase: new URL("https://riley-chatbot.vercel.app"), 
   openGraph: {
     title: "Nolan Portfolio | Full Stack Developer",
     description: "Jelajahi mahakarya digital dan pengalaman profesional saya.",
-    images: [`${baseUrl}/api/og?title=Nolan%20Portfolio&desc=Full-Stack%20Web%20Developer`],
+    url: "https://riley-chatbot.vercel.app",
+    siteName: "Nolan Portfolio",
+    images: [
+      {
+        url: "/api/og?title=Nolan%20Portfolio&desc=Full-Stack%20Web%20Developer",
+        width: 1200,
+        height: 630,
+        alt: "Nolan Portfolio Thumbnail",
+      },
+    ],
+    locale: "id_ID",
+    type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    images: [`${baseUrl}/api/og?title=Nolan%20Portfolio&desc=Full-Stack%20Web%20Developer`],
+    title: "Nolan Portfolio | Full Stack Developer",
+    description: "Jelajahi mahakarya digital dan pengalaman profesional saya.",
+    images: ["/api/og?title=Nolan%20Portfolio&desc=Full-Stack%20Web%20Developer"],
   }
 };
 
