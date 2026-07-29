@@ -7,17 +7,24 @@ export async function POST(req: Request) {
   try {
     const { prompt, type } = await req.json();
 
+    // 🔥 1. FITUR TEXT-TO-IMAGE (Gratis, Tanpa API Key, Pakai Pollinations AI)
+    // Gak perlu bayar langganan Google AI Studio lagi buat bikin gambar!
     if (type === 'image') {
-      const response = await ai.models.generateImages({
-        model: 'imagen-3.0-generate-002',
-        prompt: prompt,
-        config: { numberOfImages: 1, outputMimeType: 'image/jpeg' }
-      });
-      const base64Image = response.generatedImages?.[0]?.image?.imageBytes;
-      if (!base64Image) throw new Error("Gagal gambar.");
-      return NextResponse.json({ result: base64Image });
+      const enhancedPrompt = `${prompt}, masterpiece, highly detailed, 8k resolution, cinematic lighting`;
+      const encodedPrompt = encodeURIComponent(enhancedPrompt);
+      
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true`;
+      
+      const imageRes = await fetch(imageUrl);
+      if (!imageRes.ok) throw new Error("Gagal generate gambar dari server gratisan.");
+      
+      const arrayBuffer = await imageRes.arrayBuffer();
+      const base64 = Buffer.from(arrayBuffer).toString('base64');
+      
+      return NextResponse.json({ result: base64 });
     }
 
+    // 🔥 2. FITUR TEXT-TO-SPEECH (Kodingan asli lu dipertahankan 100%)
     if (type === 'tts') {
       const response = await ai.models.generateContent({
         model: 'gemini-3.1-flash-tts-preview',
@@ -33,7 +40,7 @@ export async function POST(req: Request) {
       const mimeType = candidatePart?.inlineData?.mimeType || 'audio/pcm;rate=24000';
       
       if (audioBase64) {
-        // 🔥 FIX: Konversi PCM ke WAV langsung di Server biar Frontend terima beres
+        // Konversi PCM ke WAV langsung di Server biar Frontend terima beres
         if (mimeType.includes('audio/pcm')) {
           let sampleRate = 24000;
           const match = mimeType.match(/rate=(\d+)/);

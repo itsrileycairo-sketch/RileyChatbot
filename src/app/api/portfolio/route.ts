@@ -5,18 +5,14 @@ export const dynamic = 'force-dynamic'; // Mencegah caching
 
 export async function GET() {
   try {
-    // 🚀 UPGRADE: Mengambil semua data dari berbagai tabel, dipasang .catch agar aman jika tabel kosong
     const [profilRows]: any = await pool.query('SELECT * FROM profil_web WHERE id = 1').catch(() => [[]]);
     const [karyaRows]: any = await pool.query('SELECT * FROM karya ORDER BY id DESC').catch(() => [[]]);
     const [skillsRows]: any = await pool.query('SELECT * FROM skills').catch(() => [[]]);
     const [experiencesRows]: any = await pool.query('SELECT * FROM experiences ORDER BY id DESC').catch(() => [[]]);
     const [servicesRows]: any = await pool.query('SELECT * FROM services').catch(() => [[]]);
-    
-    // Fitur Baru
     const [blogsRows]: any = await pool.query('SELECT * FROM blogs ORDER BY id DESC').catch(() => [[]]);
     const [pricingRows]: any = await pool.query('SELECT * FROM pricing').catch(() => [[]]);
 
-    // Mengirim semuanya sebagai satu paket JSON ke Frontend
     return NextResponse.json({
       profil: profilRows[0] || null,
       karya: karyaRows || [],

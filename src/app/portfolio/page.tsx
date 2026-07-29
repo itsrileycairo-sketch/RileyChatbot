@@ -1,57 +1,130 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ExternalLink, MonitorPlay, Zap, Code2, Link as LinkIcon } from 'lucide-react';
+import InteractiveBackground from "@/components/InteractiveBackground";
+import CyberpunkLoading from "@/components/CyberpunkLoading";
 
 export default function Portfolio() {
-  const [data, setData] = useState<any>(null);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/portfolio').then(res => res.json()).then(setData);
+    const fetchProjects = async () => {
+      try {
+        const res = await fetch('/api/portfolio');
+        if (res.ok) {
+          const data = await res.json();
+          // Ambil data dari tabel karya, filter kalau null
+          const validProjects = (data.karya || []).filter((p: any) => p && p.judul);
+          setProjects(validProjects);
+        }
+      } catch (error) {
+        console.error("Gagal mengambil data portfolio:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchProjects();
   }, []);
 
-  if (!data) return (
-    <div className="min-h-[80vh] flex flex-col items-center justify-center">
-      <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4 shadow-[0_0_15px_#22d3ee]"></div>
-      <p className="text-cyan-600 dark:text-cyan-400 font-medium animate-pulse tracking-widest">LOADING PORTFOLIO...</p>
-    </div>
-  );
-
-  const karyaList = Array.isArray(data.karya) ? data.karya : [];
+  if (isLoading) {
+    return <CyberpunkLoading text="Decrypting Project Files..." />;
+  }
 
   return (
-    <main className="max-w-7xl mx-auto px-6 py-20 min-h-screen relative z-10">
-      <div className="text-center mb-16">
-        <p className="text-cyan-600 dark:text-cyan-400 font-bold tracking-[0.2em] uppercase text-xs mb-2">MY WORKS</p>
-        <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white mb-6 transition-colors">Mahakarya <span className="text-cyan-500">Digital</span></h1>
-      </div>
+    <div className="min-h-screen relative w-full overflow-hidden bg-slate-50 dark:bg-[#050510] pt-28 md:pt-36 pb-20 px-4 sm:px-6">
+      <InteractiveBackground />
+      
+      <div className="max-w-6xl mx-auto relative z-10 w-full">
+        {/* HEADER SECTION */}
+        <div className="text-center mb-16 sm:mb-24 animate-fade-in-up">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-600 dark:text-cyan-400 font-semibold text-sm mb-6">
+            <MonitorPlay size={16} /> Featured Work
+          </div>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-slate-900 dark:text-white mb-6 tracking-tight">
+            Case <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-purple-500 dark:from-cyan-400 dark:to-purple-500">Studies.</span>
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-base sm:text-lg leading-relaxed font-light">
+            Bukan sekadar menulis kode, tapi memecahkan masalah bisnis nyata. Berikut adalah beberapa mahakarya digital yang pernah saya bangun.
+          </p>
+        </div>
 
-      {karyaList.length === 0 ? (
-        <p className="text-center text-slate-500">Belum ada karya yang diunggah dari Admin.</p>
-      ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {karyaList.map((item: any) => (
-            <div key={item.id} className="bg-white dark:bg-[#0c0c1d] rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden group hover:border-cyan-500/50 transition-all shadow-lg dark:shadow-xl">
-              <div className="h-56 overflow-hidden relative">
-                <div className="absolute inset-0 bg-slate-900/10 dark:bg-slate-900/40 group-hover:bg-transparent transition-colors duration-500 z-10"></div>
-                <img src={item.image_url || 'https://via.placeholder.com/600x400'} alt={item.judul} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                <div className="absolute top-4 left-4 z-20 bg-white/90 dark:bg-[#050510]/80 backdrop-blur-md text-cyan-700 dark:text-cyan-400 text-xs font-bold px-3 py-1 rounded-full border border-cyan-200 dark:border-cyan-900/50">
-                  {item.kategori}
+        {/* LIST PROJECT SECTION */}
+        {projects.length === 0 ? (
+          <div className="text-center py-20 text-slate-500 border border-dashed border-slate-300 dark:border-slate-700 rounded-3xl bg-white/50 dark:bg-slate-900/20 backdrop-blur-sm animate-fade-in-up">
+            Belum ada karya di database. Tambahkan melalui halaman Admin!
+          </div>
+        ) : (
+          <div className="flex flex-col gap-16 sm:gap-24 md:gap-32 w-full">
+            {projects.map((project, index) => (
+              <div 
+                key={project.id || index} 
+                className={`flex flex-col ${index % 2 !== 0 ? 'lg:flex-row-reverse' : 'lg:flex-row'} gap-8 lg:gap-16 items-start w-full animate-fade-in-up`}
+                style={{ animationDelay: `${index * 150}ms` }}
+              >
+                
+                {/* BAGIAN GAMBAR PROJECT */}
+                <div className="w-full lg:w-1/2 flex-shrink-0">
+                  <div className="relative w-full aspect-[4/3] rounded-[2rem] overflow-hidden bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 shadow-2xl group">
+                    <div className="absolute inset-0 bg-cyan-500/10 mix-blend-overlay z-10 group-hover:opacity-0 transition-opacity duration-500 pointer-events-none"></div>
+                    {/* Gambar dengan Fallback kalau URL kosong */}
+                    <img 
+                      src={project.image_url || "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1000&auto=format&fit=crop"} 
+                      alt={project.judul || "Project Image"}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    />
+                    {/* Badge Kategori */}
+                    <div className="absolute top-4 left-4 z-20">
+                      <div className="px-4 py-1.5 text-xs font-bold bg-white/90 dark:bg-black/80 backdrop-blur-md text-slate-900 dark:text-white rounded-full border border-slate-200 dark:border-white/10 shadow-lg">
+                        {project.kategori || "Web Project"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* BAGIAN DESKRIPSI PROJECT */}
+                <div className="w-full lg:w-1/2 flex flex-col justify-center">
+                  <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white mb-6">
+                    {project.judul || "Untitled Project"}
+                  </h2>
+                  
+                  <div className="space-y-6">
+                    <div className="bg-white/60 dark:bg-cyan-950/20 p-6 rounded-2xl border border-slate-200 dark:border-cyan-900/50 shadow-sm">
+                      <h3 className="text-sm font-black text-cyan-600 dark:text-cyan-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <Zap size={16} /> Deskripsi Proyek
+                      </h3>
+                      <p className="text-slate-700 dark:text-slate-300 font-light leading-relaxed whitespace-pre-wrap">
+                        {project.deskripsi || "Tidak ada deskripsi yang tersedia untuk karya ini."}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 pt-8 border-t border-slate-200 dark:border-slate-800">
+                    <div className="flex flex-wrap gap-4">
+                      {project.link_project && project.link_project !== "#" ? (
+                        <a 
+                          href={project.link_project} 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="flex items-center gap-2 px-6 py-3.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold transition-all hover:scale-105 active:scale-95 shadow-lg shadow-cyan-500/25 w-full sm:w-auto justify-center"
+                        >
+                          <ExternalLink size={18} /> Kunjungi Proyek
+                        </a>
+                      ) : (
+                        <span className="flex items-center gap-2 px-6 py-3.5 bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-500 rounded-xl font-bold cursor-not-allowed w-full sm:w-auto justify-center">
+                          <LinkIcon size={18} /> Link Tidak Tersedia
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
                 </div>
               </div>
-              <div className="p-6">
-                <h3 className="font-bold text-xl text-slate-900 dark:text-white mb-2 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">{item.judul}</h3>
-                <p className="text-slate-600 dark:text-slate-500 text-sm line-clamp-3 mb-6 transition-colors">{item.deskripsi}</p>
-                {item.link_project && (
-                  <a href={item.link_project} target="_blank" rel="noreferrer" className="text-cyan-600 dark:text-cyan-400 text-sm font-semibold flex items-center gap-2 hover:text-cyan-500 dark:hover:text-cyan-300 transition-colors">
-                    Lihat Proyek Asli <ExternalLink size={14} />
-                  </a>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </main>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

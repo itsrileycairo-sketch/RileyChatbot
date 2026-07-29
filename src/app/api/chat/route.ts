@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
-    const { history, message, image } = await req.json();
+    // 🔥 1. Tambahin 'document' buat nangkep file PDF/TXT dari frontend
+    const { history, message, image, document } = await req.json();
 
     if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json({ reply: "Waduh, API Key belum dipasang nih, gue gak bisa mikir!" }, { status: 400 });
@@ -25,9 +26,19 @@ export async function POST(req: Request) {
       console.error("Gagal mengambil context database:", dbErr);
     }
 
+    // Ambil waktu saat ini biar AI bisa jawab pertanyaan soal tanggal/jam
+    const now = new Date().toLocaleString('id-ID', { 
+      timeZone: 'Asia/Jakarta', 
+      dateStyle: 'full', 
+      timeStyle: 'long' 
+    });
+
     const systemInstructionText = `
       Lu adalah AI asisten tongkrongan buatan Nolan Fortino Ramadhany (panggilannya Kak Riley), mahasiswa S1 Teknik Komputer UTDI Yogyakarta.
       Sikapmu: Asik, gaul, agak kocak, layaknya teman tongkrongan. Kamu punya pengalaman setara Senior Software Architect.
+
+      INFO PENTING SAAT INI:
+      - Waktu dan Tanggal: ${now}
 
       Gue udah ambil ringkasan data karya/portfolio asli dari database MySQL Kak Riley saat ini:
       ${portfolioContext}
@@ -52,9 +63,16 @@ export async function POST(req: Request) {
       const mimeType = image.split(';')[0].split(':')[1];
       newParts.push({ inline_data: { mime_type: mimeType, data: base64Data } });
     }
+    // 📄 FITUR BARU: Baca Dokumen (PDF, CSV, TXT)
+    else if (document) {
+      const mimeType = document.mimeType;
+      const base64Data = document.base64.split(',')[1];
+      newParts.push({ inline_data: { mime_type: mimeType, data: base64Data } });
+    }
 
     contents.push({ role: 'user', parts: newParts });
 
+    // HAPUS TOTAL FITUR GOOGLE SEARCH BIAR GAK KENA LIMIT LAGI
     const requestBody = {
       system_instruction: { parts: [{ text: systemInstructionText }] },
       contents: contents

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { X, Send, Image as ImageIcon, Copy, Check, Volume2, Loader2, Phone, PhoneOff, Mic, MicOff } from 'lucide-react';
+import { X, Send, Image as ImageIcon, Copy, Check, Volume2, Loader2, Phone, PhoneOff, Mic, MicOff, FileText } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -76,13 +76,16 @@ const CodeBlock = ({ node, inline, className, children, ...props }: any) => {
 /* ---------- KOMPONEN UTAMA CHATBOT ---------- */
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string; hasImage?: boolean; aiImage?: string }[]>([
-    { role: 'ai', text: 'Yoo! Ada yang mau ditanyain? Kirim error kodingan, tanya project, buatin gambar, atau panggil telepon langsung (Live Mode) juga bisa!' }
+  const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string; hasImage?: boolean; aiImage?: string; hasDocument?: boolean }[]>([
+    { role: 'ai', text: 'Yoo! Chatbot ini sekarang bisa browsing Google secara otomatis loh. Coba tanya hal terkini atau kirim foto/PDF (Maks 4.5MB)!' }
   ]);
   const [input, setInput] = useState('');
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [docPreview, setDocPreview] = useState<{ name: string; mimeType: string; base64: string } | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  
+  const [isLoading, setIsLoading] = useState(false);
   const [ttsLoadingIdx, setTtsLoadingIdx] = useState<number | null>(null);
   const [ttsPlayingIdx, setTtsPlayingIdx] = useState<number | null>(null);
   
@@ -90,43 +93,50 @@ export default function Chatbot() {
   const [isLiveConnecting, setIsLiveConnecting] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   
-  // Refs untuk Live Call
   const wsRef = useRef<WebSocket | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
-  
-  // Refs Speaker Output Queue
   const playbackCtxRef = useRef<AudioContext | null>(null);
   const nextPlayTimeRef = useRef<number>(0);
-  
-  // 🔥 Ref Tracking Node Suara Aktif untuk Interupsi (Barge-in)
   const activeSourcesRef = useRef<AudioBufferSourceNode[]>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   
   useEffect(() => {
     scrollToBottom();
-  }, [messages, imagePreview]);
+  }, [messages, imagePreview, docPreview]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFileError(null);
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setImagePreview(reader.result as string);
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (file.size > 4.5 * 1024 * 1024) {
+      setFileError("File kegedean bro! Maksimal 4.5 MB.");
+      return;
     }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      if (file.type.startsWith('image/')) {
+        setImagePreview(base64);
+        setDocPreview(null);
+      } else {
+        setDocPreview({ name: file.name, mimeType: file.type, base64: base64 });
+        setImagePreview(null);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
-  /* ---------- FUNGSI PLAY TTS BIASA ---------- */
   const playTTS = async (text: string, index: number) => {
     if (ttsLoadingIdx !== null || ttsPlayingIdx !== null) return; 
     setTtsLoadingIdx(index);
 
     try {
       const cleanText = text.replace(/```[\s\S]*?```/g, "Berikut kodenya.").replace(/[#*`_]/g, '');
-      
       const res = await fetch('/api/generate-media', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -135,8 +145,7 @@ export default function Chatbot() {
 
       const contentType = res.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
-        const textError = await res.text();
-        throw new Error("Server mengembalikan HTML, bukan JSON. Cek log server.");
+        throw new Error("Server mengembalikan format salah.");
       }
 
       const data = await res.json();
@@ -144,16 +153,12 @@ export default function Chatbot() {
 
       const binaryString = window.atob(data.audio);
       const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
+      for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
 
       const dataView = new DataView(bytes.buffer);
       const numSamples = Math.floor(bytes.length / 2);
       const float32Array = new Float32Array(numSamples);
-      for (let i = 0; i < numSamples; i++) {
-        float32Array[i] = dataView.getInt16(i * 2, true) / 32768.0;
-      }
+      for (let i = 0; i < numSamples; i++) float32Array[i] = dataView.getInt16(i * 2, true) / 32768.0;
 
       const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
       const ctx = new AudioCtxClass();
@@ -177,7 +182,6 @@ export default function Chatbot() {
         setTtsPlayingIdx(null);
         ctx.close();
       };
-
       source.start(0);
 
     } catch (error: any) {
@@ -188,23 +192,16 @@ export default function Chatbot() {
     }
   };
 
-  /* ---------- FUNGSI LIVE CALL FIX INTERUPSI ---------- */
   const startLiveCall = async () => {
     try {
       setIsLiveConnecting(true);
 
       const tokenRes = await fetch('/api/live-token');
-      const contentType = tokenRes.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Server endpoint /api/live-token rusak.");
-      }
-
       const { apiKey, error } = await tokenRes.json();
       if (error || !apiKey) throw new Error(error || "Gagal mengambil API Key");
 
       const modelName = "models/gemini-3.1-flash-live-preview";
       const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey}`;
-      
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
@@ -218,17 +215,16 @@ export default function Chatbot() {
           setIsLiveConnecting(false);
           setIsLiveActive(true);
 
-          const setupMsg = {
+          const setupMsg: any = {
             setup: {
               model: modelName,
               generationConfig: {
                 responseModalities: ["AUDIO"],
-                speechConfig: {
-                  voiceConfig: { prebuiltVoiceConfig: { voiceName: "Aoede" } }
-                }
+                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Aoede" } } }
               }
             }
           };
+
           ws.send(JSON.stringify(setupMsg));
 
           const stream = await navigator.mediaDevices.getUserMedia({ audio: { sampleRate: 16000, channelCount: 1 } });
@@ -250,18 +246,13 @@ export default function Chatbot() {
 
             let binary = '';
             const bytes = new Uint8Array(pcm16.buffer);
-            for (let i = 0; i < bytes.byteLength; i++) {
-              binary += String.fromCharCode(bytes[i]);
-            }
+            for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
             const base64Audio = window.btoa(binary);
 
             if (ws.readyState === WebSocket.OPEN) {
               ws.send(JSON.stringify({
                 realtimeInput: {
-                  audio: {
-                    mimeType: "audio/pcm;rate=16000",
-                    data: base64Audio
-                  }
+                  audio: { mimeType: "audio/pcm;rate=16000", data: base64Audio }
                 }
               }));
             }
@@ -272,7 +263,7 @@ export default function Chatbot() {
 
         } catch (micError: any) {
           console.error("Mic error:", micError);
-          alert("Gagal masuk mode Live: Pastikan lu ngasih izin Microphone di browser ya bro!");
+          alert("Gagal masuk mode Live: Kasih izin Microphone bro!");
           stopLiveCall();
         }
       };
@@ -280,26 +271,15 @@ export default function Chatbot() {
       ws.onmessage = async (event) => {
         try {
           let textData = event.data;
-          if (event.data instanceof Blob) {
-            textData = await event.data.text();
-          }
+          if (event.data instanceof Blob) textData = await event.data.text();
           const response = JSON.parse(textData);
           
-          // 🔥 LOGIKA INTERUPSI (BARGE-IN): Google nyuruh stop karena user ngomong!
           if (response.serverContent?.interrupted) {
-            console.log("AI diinterupsi oleh user!");
-            activeSourcesRef.current.forEach(src => {
-              try { src.stop(); } catch (e) {} // Stop paksa audio yang lagi ngantre/jalan
-            });
-            activeSourcesRef.current = []; // Kosongkan daftar antrean
-            
-            // Reset waktu antrean sesuai waktu putar saat ini biar AI bisa langsung ngomong lagi
-            if (playbackCtxRef.current) {
-               nextPlayTimeRef.current = playbackCtxRef.current.currentTime;
-            } else {
-               nextPlayTimeRef.current = 0;
-            }
-            return; // Berhenti memproses antrean pesan yang ini
+            activeSourcesRef.current.forEach(src => { try { src.stop(); } catch (e) {} });
+            activeSourcesRef.current = [];
+            if (playbackCtxRef.current) nextPlayTimeRef.current = playbackCtxRef.current.currentTime;
+            else nextPlayTimeRef.current = 0;
+            return;
           }
 
           const parts = response.serverContent?.modelTurn?.parts;
@@ -314,16 +294,12 @@ export default function Chatbot() {
                 const dataView = new DataView(bytes.buffer);
                 const samples = Math.floor(bytes.length / 2);
                 const float32 = new Float32Array(samples);
-                for (let i = 0; i < samples; i++) {
-                  float32[i] = dataView.getInt16(i * 2, true) / 32768.0;
-                }
+                for (let i = 0; i < samples; i++) float32[i] = dataView.getInt16(i * 2, true) / 32768.0;
 
                 const pCtx = playbackCtxRef.current;
                 if (!pCtx) return;
 
-                if (pCtx.state === 'suspended') {
-                  await pCtx.resume();
-                }
+                if (pCtx.state === 'suspended') await pCtx.resume();
 
                 const buf = pCtx.createBuffer(1, float32.length, 24000);
                 buf.getChannelData(0).set(float32);
@@ -332,17 +308,10 @@ export default function Chatbot() {
                 src.buffer = buf;
                 src.connect(pCtx.destination);
 
-                // Tambahin ke daftar tracking buat siap-siap disetop (diinterupsi)
                 activeSourcesRef.current.push(src);
-                src.onended = () => {
-                  // Hapus dari memori kalau audionya beneran kelar tanpa diinterupsi
-                  activeSourcesRef.current = activeSourcesRef.current.filter(s => s !== src);
-                };
+                src.onended = () => { activeSourcesRef.current = activeSourcesRef.current.filter(s => s !== src); };
 
-                if (nextPlayTimeRef.current < pCtx.currentTime) {
-                  nextPlayTimeRef.current = pCtx.currentTime + 0.05;
-                }
-                
+                if (nextPlayTimeRef.current < pCtx.currentTime) nextPlayTimeRef.current = pCtx.currentTime + 0.05;
                 src.start(nextPlayTimeRef.current);
                 nextPlayTimeRef.current += buf.duration;
               }
@@ -353,20 +322,10 @@ export default function Chatbot() {
         }
       };
 
-      ws.onclose = (event) => {
-        console.log("Koneksi Live API terputus:", event.code, event.reason);
-        if (event.code !== 1000 && event.code !== 1005) {
-          alert(`Koneksi Live API ditutup oleh Google: ${event.reason || "Batas waktu sesi habis atau Cek terminal."}`);
-        }
-        stopLiveCall();
-      };
-
-      ws.onerror = (e) => {
-        console.error("Live WebSocket Error:", e);
-      };
+      ws.onclose = () => { stopLiveCall(); };
+      ws.onerror = (e) => { console.error("Live WebSocket Error:", e); };
 
     } catch (err: any) {
-      console.error("Gagal memulai Live Call:", err.message);
       alert("Error: " + err.message);
       setIsLiveConnecting(false);
       setIsLiveActive(false);
@@ -374,28 +333,12 @@ export default function Chatbot() {
   };
 
   const stopLiveCall = () => {
-    const ws = wsRef.current;
-    if (ws) {
-      wsRef.current = null;
-      ws.close();
-    }
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach(track => track.stop());
-      mediaStreamRef.current = null;
-    }
-    if (audioCtxRef.current) {
-      audioCtxRef.current.close();
-      audioCtxRef.current = null;
-    }
-    if (playbackCtxRef.current) {
-      playbackCtxRef.current.close();
-      playbackCtxRef.current = null;
-    }
+    if (wsRef.current) { wsRef.current.close(); wsRef.current = null; }
+    if (mediaStreamRef.current) { mediaStreamRef.current.getTracks().forEach(t => t.stop()); mediaStreamRef.current = null; }
+    if (audioCtxRef.current) { audioCtxRef.current.close(); audioCtxRef.current = null; }
+    if (playbackCtxRef.current) { playbackCtxRef.current.close(); playbackCtxRef.current = null; }
     
-    // Hentikan sisa suara pas telepon dimatikan
-    activeSourcesRef.current.forEach(src => {
-      try { src.stop(); } catch (e) {}
-    });
+    activeSourcesRef.current.forEach(src => { try { src.stop(); } catch (e) {} });
     activeSourcesRef.current = [];
     
     setIsLiveActive(false);
@@ -404,18 +347,21 @@ export default function Chatbot() {
 
   /* ---------- FUNGSI KIRIM PESAN UTAMA ---------- */
   const sendMessage = async () => {
-    if ((!input.trim() && !imagePreview) || isLoading) return;
+    if ((!input.trim() && !imagePreview && !docPreview) || isLoading) return;
 
-    const userMessage = input || "Tolong analisis gambar ini.";
+    const userMessage = input || (docPreview ? `Tolong rangkum atau analisis dokumen ini: ${docPreview.name}` : "Tolong analisis gambar ini.");
     const attachedImage = imagePreview;
+    const attachedDoc = docPreview;
     
     setInput('');
     setImagePreview(null);
+    setDocPreview(null);
+    setFileError(null);
     setIsLoading(true);
 
     const historyToAPI = messages.filter(m => !m.text.includes('Yoo!'));
 
-    setMessages((prev) => [...prev, { role: 'user', text: userMessage, hasImage: !!attachedImage }]);
+    setMessages((prev) => [...prev, { role: 'user', text: userMessage, hasImage: !!attachedImage, hasDocument: !!attachedDoc }]);
     setMessages((prev) => [...prev, { role: 'ai', text: '' }]);
 
     const isImageCommand = /buat(in|kan) gambar|bikin gambar|generate gambar|gambarkan/i.test(userMessage);
@@ -428,11 +374,6 @@ export default function Chatbot() {
           body: JSON.stringify({ prompt: userMessage, type: 'image' })
         });
         
-        const contentType = res.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-           throw new Error("Server /api/generate-media mengembalikan format yang salah (HTML).");
-        }
-
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
         
@@ -447,12 +388,12 @@ export default function Chatbot() {
         const res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ history: historyToAPI, message: userMessage, image: attachedImage }),
+          body: JSON.stringify({ history: historyToAPI, message: userMessage, image: attachedImage, document: attachedDoc }),
         });
 
         if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(res.status === 429 ? 'Limit harian abis bro!' : (errData.reply || 'Waduh, error bro.'));
+           const errData = await res.json();
+           throw new Error(errData.reply || 'Server Error bro!');
         }
 
         const reader = res.body?.getReader();
@@ -517,12 +458,12 @@ export default function Chatbot() {
               <h2 className="text-white font-bold text-sm sm:text-base tracking-tight">AI Assistant</h2>
               <p className="text-blue-200 text-[10px] sm:text-xs flex items-center gap-1.5">
                 <span className="relative flex h-2 w-2"><span className="animate-ping absolute h-full w-full rounded-full bg-green-400 opacity-75"></span><span className="relative rounded-full h-2 w-2 bg-green-500"></span></span>
-                Live API & Vision Active
+                Live & Web Grounding Active
               </p>
             </div>
             
-            {/* 🔥 TOMBOL TELEPON LIVE API */}
-            {!isLiveActive ? (
+            {/* 🔥 TOMBOL TELEPON SAJA */}
+            {!isLiveActive && (
               <button 
                 onClick={startLiveCall}
                 disabled={isLiveConnecting}
@@ -531,9 +472,9 @@ export default function Chatbot() {
               >
                 {isLiveConnecting ? <Loader2 size={16} className="animate-spin" /> : <Phone size={16} />}
               </button>
-            ) : null}
+            )}
 
-            <button suppressHydrationWarning onClick={() => setIsOpen(false)} className="text-blue-200 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition-all duration-200"><X size={18} /></button>
+            <button suppressHydrationWarning onClick={() => setIsOpen(false)} className="text-blue-200 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition-all duration-200 ml-1"><X size={18} /></button>
           </div>
 
           {/* OVERLAY TAMPILAN SAAT TELEPONAN BERLANGSUNG */}
@@ -547,7 +488,9 @@ export default function Chatbot() {
               </div>
 
               <h3 className="text-white font-bold text-lg mb-1">Live Voice Call Active</h3>
-              <p className="text-blue-300 text-xs mb-8">Langsung ngomong aja bro, AI bakal dengerin & ngebales!</p>
+              <p className="text-blue-300 text-xs mb-8">
+                Langsung ngomong aja bro, AI bakal dengerin & ngebales!
+              </p>
 
               <div className="flex items-center gap-6">
                 <button 
@@ -556,7 +499,6 @@ export default function Chatbot() {
                 >
                   {isMuted ? <MicOff size={22} /> : <Mic size={22} />}
                 </button>
-
                 <button 
                   onClick={stopLiveCall}
                   className="p-4 rounded-full bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/30 transition-all active:scale-95"
@@ -600,6 +542,11 @@ export default function Chatbot() {
                       <ImageIcon size={12}/> Gambar terlampir
                     </div>
                   )}
+                  {msg.hasDocument && (
+                    <div className="mb-2 text-[10px] bg-white/20 inline-block px-2 py-1 rounded border border-white/30 text-white font-bold flex items-center gap-1 w-fit">
+                      <FileText size={12}/> Dokumen terlampir
+                    </div>
+                  )}
 
                   {msg.role === 'user' ? ( msg.text ) : (
                     <div className="prose prose-sm prose-invert max-w-none prose-p:leading-relaxed prose-pre:p-0 prose-pre:bg-transparent prose-code:text-blue-300">
@@ -629,43 +576,60 @@ export default function Chatbot() {
             <div ref={messagesEndRef} />
           </div>
 
-          {imagePreview && (
+          {/* Area Error dan Preview File */}
+          {(fileError || imagePreview || docPreview) && (
             <div className="px-4 py-3 bg-slate-800/90 border-t border-blue-500/30 flex items-center justify-between animate-msg-in" suppressHydrationWarning>
-              <div className="flex items-center gap-3">
-                <img src={imagePreview} alt="Preview" className="h-12 w-12 object-cover rounded-lg border-2 border-blue-500/50 shadow-lg" />
-                <span className="text-xs font-semibold text-blue-300">Gambar siap dikirim...</span>
-              </div>
-              <button suppressHydrationWarning onClick={() => setImagePreview(null)} className="text-slate-400 hover:text-red-400 bg-slate-900 p-2 rounded-full transition-colors"><X size={16}/></button>
+              {fileError ? (
+                 <span className="text-xs font-semibold text-red-400">{fileError}</span>
+              ) : imagePreview ? (
+                <div className="flex items-center gap-3">
+                  <img src={imagePreview} alt="Preview" className="h-12 w-12 object-cover rounded-lg border-2 border-blue-500/50 shadow-lg" />
+                  <span className="text-xs font-semibold text-blue-300">Gambar siap dikirim...</span>
+                </div>
+              ) : docPreview && (
+                <div className="flex items-center gap-3">
+                  <FileText className="h-10 w-10 text-blue-400" />
+                  <span className="text-xs font-semibold text-blue-300 truncate max-w-[200px]">{docPreview.name}</span>
+                </div>
+              )}
+              <button suppressHydrationWarning onClick={() => { setImagePreview(null); setDocPreview(null); setFileError(null); }} className="text-slate-400 hover:text-red-400 bg-slate-900 p-2 rounded-full transition-colors"><X size={16}/></button>
             </div>
           )}
 
           {/* INPUT FORM CHAT */}
-          <div className="p-2.5 sm:p-3 bg-slate-900/90 backdrop-blur-xl border-t border-blue-500/30 flex items-center gap-1.5 sm:gap-2 relative" suppressHydrationWarning>
-            <label className={`cursor-pointer p-2 sm:p-2.5 rounded-full transition-colors ${isLoading ? 'text-slate-600 pointer-events-none' : 'text-slate-400 hover:text-blue-400 hover:bg-blue-500/10'}`} title="Kirim Screenshot/Gambar">
-              <ImageIcon size={20} />
-              <input suppressHydrationWarning type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isLoading} />
-            </label>
-            
-            <input
-              suppressHydrationWarning
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-              disabled={isLoading}
-              placeholder={isLoading ? "AI sedang bekerja..." : "Ketik pertanyaan atau 'buatin gambar'..."}
-              className="min-w-0 flex-1 bg-slate-800/50 border border-slate-700 rounded-full px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            />
-            
-            <button
-              suppressHydrationWarning
-              onClick={sendMessage}
-              disabled={isLoading || (!input.trim() && !imagePreview)}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white p-2.5 sm:p-3 rounded-full shadow-lg shadow-blue-500/20 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-600 transition-all duration-200 active:scale-95 shrink-0"
-              aria-label="Kirim"
-            >
-              <Send size={18} />
-            </button>
+          <div className="p-2 sm:p-3 bg-slate-900/90 backdrop-blur-xl border-t border-blue-500/30 flex flex-col gap-2 relative" suppressHydrationWarning>
+            <div className="flex justify-between items-center px-2">
+              <span className="text-[9px] text-slate-500 flex items-center gap-1">
+                Lampiran: <ImageIcon size={10}/> Gambar | <FileText size={10}/> PDF/CSV/TXT (Max: 4.5 MB)
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <label className={`cursor-pointer p-2 sm:p-2.5 rounded-full transition-colors ${isLoading ? 'text-slate-600 pointer-events-none' : 'text-slate-400 hover:text-blue-400 hover:bg-blue-500/10'}`} title="Kirim Screenshot/PDF/Dokumen">
+                <FileText size={20} />
+                <input suppressHydrationWarning type="file" accept="image/*,application/pdf,text/plain,.csv" className="hidden" onChange={handleFileUpload} disabled={isLoading} />
+              </label>
+              
+              <input
+                suppressHydrationWarning
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                disabled={isLoading}
+                placeholder={isLoading ? "AI sedang bekerja..." : "Tanya berita, kirim PDF, atau buatin gambar..."}
+                className="min-w-0 flex-1 bg-slate-800/50 border border-slate-700 rounded-full px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+              
+              <button
+                suppressHydrationWarning
+                onClick={sendMessage}
+                disabled={isLoading || (!input.trim() && !imagePreview && !docPreview)}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white p-2.5 sm:p-3 rounded-full shadow-lg shadow-blue-500/20 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-600 transition-all duration-200 active:scale-95 shrink-0"
+                aria-label="Kirim"
+              >
+                <Send size={18} />
+              </button>
+            </div>
           </div>
         </div>
       ) : (
