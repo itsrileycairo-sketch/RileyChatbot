@@ -26,20 +26,17 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 🔥 FIX: Nembak ke API /api/portfolio aja! API ini udah nyediain profil & services sekalian
-        const res = await fetch('/api/portfolio', { 
+        const resProfile = await fetch('/api/portfolio', { 
           cache: 'no-store',
           headers: {
             'Pragma': 'no-cache',
             'Cache-Control': 'no-cache, no-store, must-revalidate'
           }
         });
-        
-        if (res.ok) {
-          const data = await res.json();
-          // Ekstrak data profil dan services langsung dari satu paket
-          setProfile(data.profil || {}); 
-          setServicesData(data.services || []);
+        if (resProfile.ok) {
+          const pData = await resProfile.json();
+          setProfile(pData.profil || pData); 
+          setServicesData(pData.services || []);
         }
       } catch (error) {
         console.error("Gagal mengambil data:", error);
@@ -94,6 +91,9 @@ export default function Home() {
   const github = safeProfile.github_link || "#";
   const linkedin = safeProfile.linkedin_link || "#";
   const instagram = safeProfile.instagram_link || "#";
+  
+  // 🔥 FIX: Definisikan email dari database!
+  const email = safeProfile.email || "";
 
   const serviceStyles = [
     { icon: Layout, gradient: "from-cyan-400/20 to-blue-400/20" },
@@ -223,11 +223,15 @@ export default function Home() {
                     Mengubah Ide Menjadi <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 dark:from-cyan-300 dark:via-blue-400 dark:to-purple-400 block sm:inline">Kenyataan Digital.</span>
                   </h2>
                   <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-sm sm:text-base md:text-lg font-light break-words tracking-wide whitespace-pre-wrap">{tentang}</p>
+                  
+                  {/* 🔥 FIX: Bagian Tombol-tombol Sosial Media */}
                   <div className="pt-4 sm:pt-6 border-t border-slate-300/50 dark:border-white/[0.08] flex flex-wrap justify-center md:justify-start gap-2 sm:gap-3">
-                    {github && github !== "#" && (<MagneticElement><a href={github} target="_blank" rel="noreferrer" className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-white/50 dark:bg-black/30 hover:bg-slate-900 hover:text-white border border-white/40 dark:border-white/[0.1] text-slate-700 dark:text-slate-300 font-semibold text-xs sm:text-sm transition-all duration-300 shadow-sm hover:shadow-md">GitHub</a></MagneticElement>)}
+                    {github && github !== "#" && (<MagneticElement><a href={github} target="_blank" rel="noreferrer" className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-white/50 dark:bg-black/30 hover:bg-slate-900 hover:text-white border border-white/40 dark:border-white/[0.1] text-slate-700 dark:text-slate-300 font-semibold text-xs sm:text-sm transition-all duration-300 shadow-sm hover:shadow-md flex items-center gap-1.5"><Code size={16}/> GitHub</a></MagneticElement>)}
                     {linkedin && linkedin !== "#" && (<MagneticElement><a href={linkedin} target="_blank" rel="noreferrer" className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-white/50 dark:bg-black/30 hover:bg-blue-600 hover:text-white border border-white/40 dark:border-white/[0.1] text-slate-700 dark:text-slate-300 font-semibold text-xs sm:text-sm transition-all duration-300 shadow-sm hover:shadow-md">LinkedIn</a></MagneticElement>)}
                     {instagram && instagram !== "#" && (<MagneticElement><a href={instagram} target="_blank" rel="noreferrer" className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-white/50 dark:bg-black/30 hover:bg-pink-600 hover:text-white border border-white/40 dark:border-white/[0.1] text-slate-700 dark:text-slate-300 font-semibold text-xs sm:text-sm transition-all duration-300 shadow-sm hover:shadow-md">Instagram</a></MagneticElement>)}
+                    {email && email !== "" && (<MagneticElement><a href={`mailto:${email}`} className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-white/50 dark:bg-black/30 hover:bg-red-500 hover:text-white border border-white/40 dark:border-white/[0.1] text-slate-700 dark:text-slate-300 font-semibold text-xs sm:text-sm transition-all duration-300 shadow-sm hover:shadow-md flex items-center gap-1.5"><Mail size={16}/> Email</a></MagneticElement>)}
                   </div>
+
                 </div>
               </div>
             </ScrollReveal>
