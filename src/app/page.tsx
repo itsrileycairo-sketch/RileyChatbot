@@ -26,7 +26,7 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 🔥 FIX PROFIL: Balik ke /api/profile tapi pakai Anti-Cache Tingkat Dewa!
+        // 🔥 AMBIL PAKET SEMBAKO DARI API
         const resProfile = await fetch('/api/profile', { 
           cache: 'no-store',
           headers: {
@@ -36,11 +36,11 @@ export default function Home() {
         });
         if (resProfile.ok) {
           const pData = await resProfile.json();
-          // Hapus index [0] karena format aslinya langsung object
-          setProfile(pData); 
+          // 🔥 KUNCI JAWABANNYA DI SINI! KITA BONGKAR PAKET SEMBAKONYA DAN AMBIL 'profil'-nya AJA!
+          setProfile(pData.profil || pData); 
         }
         
-        // Ambil data Services (Ini udah bener dari awal)
+        // Ambil data Services
         const resServices = await fetch('/api/admin-data?table=services', { cache: 'no-store' });
         if (resServices.ok) {
           const sData = await resServices.json();
@@ -55,7 +55,6 @@ export default function Home() {
     fetchData();
   }, []);
 
-  // Sensor Keyboard
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       setSecretKey((prev) => (prev + e.key.toLowerCase()).slice(-4));
@@ -71,7 +70,6 @@ export default function Home() {
     }
   }, [secretKey]);
 
-  // Sensor Triple Tap HP
   useEffect(() => {
     if (tapCount >= 3) {
       setShowTerminal(true);
@@ -85,22 +83,23 @@ export default function Home() {
     return <CyberpunkLoading text="Initializing System Core..." />;
   }
 
-  // Tarik data profil, kalau kosong baru pakai fallback Nolan
-  const namaDepan = profile?.nama_lengkap ? profile.nama_lengkap.split(' ')[0] : "Nolan";
-  const namaPenuh = profile?.nama_lengkap || "Nolan Fortino Ramadhany";
+  // Tarik data profil dengan aman!
+  const safeProfile = profile || {};
+  
+  const namaDepan = safeProfile.nama_lengkap ? safeProfile.nama_lengkap.split(' ')[0] : "Kak Riley";
+  const namaPenuh = safeProfile.nama_lengkap || "Kak Riley";
 
-  const roles = profile?.headline
-    ? profile.headline.split(',').map((role: string) => role.trim()).filter(Boolean)
-    : ["Full-Stack Web Developer", "AI Prompt Engineer", "UI/UX Enthusiast"];
+  const roles = safeProfile.headline
+    ? safeProfile.headline.split(',').map((role: string) => role.trim()).filter(Boolean)
+    : ["Full-Stack Web Developer", "AI Prompt Engineer"];
 
-  const tentang = profile?.tentang || "Saya seorang pengembang web yang fokus menciptakan aplikasi modern, interaktif, dan performa tinggi.";
-  const heroImage = profile?.hero_image || null;
-  const aboutImage = profile?.about_image || null;
-  const github = profile?.github_link || "#";
-  const linkedin = profile?.linkedin_link || "#";
-  const instagram = profile?.instagram_link || "#";
+  const tentang = safeProfile.tentang || "Database profil masih kosong nih, yuk isi lewat menu Admin Kak Riley!";
+  const heroImage = safeProfile.hero_image || null;
+  const aboutImage = safeProfile.about_image || null;
+  const github = safeProfile.github_link || "#";
+  const linkedin = safeProfile.linkedin_link || "#";
+  const instagram = safeProfile.instagram_link || "#";
 
-  // Desain visual services
   const serviceStyles = [
     { icon: Layout, gradient: "from-cyan-400/20 to-blue-400/20" },
     { icon: Database, gradient: "from-purple-400/20 to-pink-400/20" },
@@ -263,7 +262,6 @@ export default function Home() {
             <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 sm:gap-8 w-full">
               <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full">
                 
-                {/* LOOPING DINAMIS DARI DATABASE SERVICES */}
                 {servicesData.length > 0 ? (
                   servicesData.map((service, i) => {
                     const style = serviceStyles[i % serviceStyles.length];
