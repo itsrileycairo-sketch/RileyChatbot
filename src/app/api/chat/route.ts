@@ -117,7 +117,7 @@ export async function POST(req: Request) {
     };
 
     // Menggunakan model Gemini 1.5 Flash (atau model sesuai environment Vercel lu)
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent?alt=sse&key=${process.env.GEMINI_API_KEY}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:streamGenerateContent?alt=sse&key=${process.env.GEMINI_API_KEY}`;
 
     const response = await fetch(apiUrl, {
       method: 'POST',
