@@ -26,25 +26,20 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 🔥 AMBIL PAKET SEMBAKO DARI API
-        const resProfile = await fetch('/api/profile', { 
+        // 🔥 FIX: Nembak ke API /api/portfolio aja! API ini udah nyediain profil & services sekalian
+        const res = await fetch('/api/portfolio', { 
           cache: 'no-store',
           headers: {
             'Pragma': 'no-cache',
             'Cache-Control': 'no-cache, no-store, must-revalidate'
           }
         });
-        if (resProfile.ok) {
-          const pData = await resProfile.json();
-          // 🔥 KUNCI JAWABANNYA DI SINI! KITA BONGKAR PAKET SEMBAKONYA DAN AMBIL 'profil'-nya AJA!
-          setProfile(pData.profil || pData); 
-        }
         
-        // Ambil data Services
-        const resServices = await fetch('/api/admin-data?table=services', { cache: 'no-store' });
-        if (resServices.ok) {
-          const sData = await resServices.json();
-          setServicesData(sData);
+        if (res.ok) {
+          const data = await res.json();
+          // Ekstrak data profil dan services langsung dari satu paket
+          setProfile(data.profil || {}); 
+          setServicesData(data.services || []);
         }
       } catch (error) {
         console.error("Gagal mengambil data:", error);
@@ -227,7 +222,7 @@ export default function Home() {
                   <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-[2.75rem] xl:text-5xl font-black leading-[1.15] text-slate-900 dark:text-white break-words tracking-tight">
                     Mengubah Ide Menjadi <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 dark:from-cyan-300 dark:via-blue-400 dark:to-purple-400 block sm:inline">Kenyataan Digital.</span>
                   </h2>
-                  <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-sm sm:text-base md:text-lg font-light break-words tracking-wide">{tentang}</p>
+                  <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-sm sm:text-base md:text-lg font-light break-words tracking-wide whitespace-pre-wrap">{tentang}</p>
                   <div className="pt-4 sm:pt-6 border-t border-slate-300/50 dark:border-white/[0.08] flex flex-wrap justify-center md:justify-start gap-2 sm:gap-3">
                     {github && github !== "#" && (<MagneticElement><a href={github} target="_blank" rel="noreferrer" className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-white/50 dark:bg-black/30 hover:bg-slate-900 hover:text-white border border-white/40 dark:border-white/[0.1] text-slate-700 dark:text-slate-300 font-semibold text-xs sm:text-sm transition-all duration-300 shadow-sm hover:shadow-md">GitHub</a></MagneticElement>)}
                     {linkedin && linkedin !== "#" && (<MagneticElement><a href={linkedin} target="_blank" rel="noreferrer" className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-white/50 dark:bg-black/30 hover:bg-blue-600 hover:text-white border border-white/40 dark:border-white/[0.1] text-slate-700 dark:text-slate-300 font-semibold text-xs sm:text-sm transition-all duration-300 shadow-sm hover:shadow-md">LinkedIn</a></MagneticElement>)}
