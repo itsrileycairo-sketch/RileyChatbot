@@ -35,14 +35,19 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 🔥 AMBIL PROFIL (ANTI CACHE)
-        const resProfile = await fetch("/api/profile", { cache: "no-store" });
+        // 🔥 PERBAIKAN: BYPASS API PROFILE, TEMBAK LANGSUNG KE TABEL profil_web!
+        const resProfile = await fetch("/api/admin-data?table=profil_web", {
+          cache: "no-store",
+        });
         if (resProfile.ok) {
-          const data = await resProfile.json();
-          setProfile(data);
+          const pData = await resProfile.json();
+          // Karena resultnya berupa array (daftar data), kita ambil data pertama [0]
+          if (pData && pData.length > 0) {
+            setProfile(pData[0]);
+          }
         }
 
-        // 🔥 AMBIL SERVICES BIAR BISA DIEDIT DI ADMIN (ANTI CACHE)
+        // Ambil data Services
         const resServices = await fetch("/api/admin-data?table=services", {
           cache: "no-store",
         });
@@ -59,7 +64,7 @@ export default function Home() {
     fetchData();
   }, []);
 
-  // 🔥 SENSOR KEYBOARD (LAPTOP)
+  // Sensor Keyboard
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       setSecretKey((prev) => (prev + e.key.toLowerCase()).slice(-4));
@@ -75,7 +80,7 @@ export default function Home() {
     }
   }, [secretKey]);
 
-  // 🔥 SENSOR TRIPLE TAP (HP)
+  // Sensor Triple Tap HP
   useEffect(() => {
     if (tapCount >= 3) {
       setShowTerminal(true);
@@ -89,7 +94,7 @@ export default function Home() {
     return <CyberpunkLoading text="Initializing System Core..." />;
   }
 
-  // FALLBACK JIKA DATABASE KOSONG
+  // Tarik data profil, kalau kosong baru pakai fallback Nolan
   const namaDepan = profile?.nama_lengkap
     ? profile.nama_lengkap.split(" ")[0]
     : "Nolan";
@@ -111,7 +116,7 @@ export default function Home() {
   const linkedin = profile?.linkedin_link || "#";
   const instagram = profile?.instagram_link || "#";
 
-  // Desain visual untuk icon & warna kotak Services
+  // Desain visual services
   const serviceStyles = [
     { icon: Layout, gradient: "from-cyan-400/20 to-blue-400/20" },
     { icon: Database, gradient: "from-purple-400/20 to-pink-400/20" },
@@ -344,7 +349,6 @@ export default function Home() {
 
             <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 sm:gap-8 w-full">
               <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full">
-                {/* 🔥 LOOPING DINAMIS DARI DATABASE SERVICES */}
                 {servicesData.length > 0 ? (
                   servicesData.map((service, i) => {
                     const style = serviceStyles[i % serviceStyles.length];

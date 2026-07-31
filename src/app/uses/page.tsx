@@ -12,25 +12,27 @@ export default function Uses() {
   useEffect(() => {
     const fetchUses = async () => {
       try {
-        // 🔥 TAMBAHAN: { cache: 'no-store' } BIAR DATA LANGSUNG UPDATE!
-        const res = await fetch("/api/portfolio", { cache: "no-store" });
+        // 🔥 PERBAIKAN: TEMBAK LANGSUNG KE TABEL uses_setup, BUKAN portfolio!
+        const res = await fetch("/api/admin-data?table=uses_setup", {
+          cache: "no-store",
+        });
         if (res.ok) {
-          const data = await res.json();
-          const usesData = data.uses || [];
+          const usesData = await res.json();
 
+          // 🔥 PERBAIKAN FILTER: Pakai .includes biar "Hardware (Workstation)" tetep masuk!
           const groupedData = [
             {
               category: "Hardware",
               icon: Monitor,
-              items: usesData.filter(
-                (item: any) => item.kategori === "Hardware",
+              items: usesData.filter((item: any) =>
+                item.kategori?.toLowerCase().includes("hard"),
               ),
             },
             {
               category: "Software",
               icon: Terminal,
-              items: usesData.filter(
-                (item: any) => item.kategori === "Software",
+              items: usesData.filter((item: any) =>
+                item.kategori?.toLowerCase().includes("soft"),
               ),
             },
           ].filter((group) => group.items.length > 0);
