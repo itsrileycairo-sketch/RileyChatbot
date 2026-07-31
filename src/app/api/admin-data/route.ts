@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { pool } from '@/lib/db';
 
-const ALLOWED_TABLES = ['skills', 'experiences', 'services', 'blogs', 'pricing', 'pesan', 'uses_setup'];
+// 🔥 FIX: achievements dan profil_web masukin ke daftar izin!
+const ALLOWED_TABLES = ['skills', 'experiences', 'services', 'blogs', 'pricing', 'pesan', 'uses_setup', 'achievements', 'profil_web'];
 
 export async function GET(req: Request) {
   try {
@@ -48,6 +49,9 @@ export async function POST(req: Request) {
     } else if (table === 'uses_setup') {
       await pool.query('INSERT INTO uses_setup (kategori, nama_item, deskripsi) VALUES (?, ?, ?)', [data.kategori, data.nama_item, data.deskripsi]);
       console.log("Sukses masukin data alat tempur!");
+    } else if (table === 'achievements') {
+      // 🔥 FIX: Nambahin logika simpan buat Achievements!
+      await pool.query('INSERT INTO achievements (judul, tahun, deskripsi) VALUES (?, ?, ?)', [data.judul, data.tahun, data.deskripsi]);
     }
 
     return NextResponse.json({ message: 'Data berhasil ditambahkan!' });

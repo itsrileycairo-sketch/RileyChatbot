@@ -24,14 +24,13 @@ export default function Navbar() {
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'Portfolio', path: '/portfolio' },
+    { name: 'Experience', path: '/experience' }, // 🔥 FIX: Huruf kecil biar Vercel nggak error
     { name: 'Achievements', path: '/achievements' },
     { name: 'Uses', path: '/uses' },
-    { name: 'Lab 🧪', path: '/lab' }, // 🔥 TAMBAHAN MENU LAB
+    { name: 'Lab 🧪', path: '/lab' },
     { name: 'Pricing', path: '/pricing' },
     { name: 'Contact', path: '/contact' },
     { name: 'Blog', path: '/blog' },
-    { name: 'Experience', path: '/Experience' },
-    
   ];
 
   if (pathname?.startsWith('/admin')) {
@@ -117,7 +116,7 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* 🔥 FIX: Menu Mobile Diperbaiki (Bisa Di-Scroll & Anti Kepotong) */}
+        {/* Menu Mobile */}
         <div
           className={`md:hidden absolute top-full left-0 w-full bg-white/95 dark:bg-slate-950/95 backdrop-blur-3xl shadow-2xl border-t border-slate-200/70 dark:border-white/5 overflow-y-auto custom-scrollbar transition-all duration-500 ease-in-out ${
             isOpen ? 'max-h-[calc(100dvh-80px)] opacity-100 pb-6' : 'max-h-0 opacity-0 pb-0'
