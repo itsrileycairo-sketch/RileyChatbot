@@ -30,6 +30,8 @@ export default function Navbar() {
     { name: 'Pricing', path: '/pricing' },
     { name: 'Contact', path: '/contact' },
     { name: 'Blog', path: '/blog' },
+    { name: 'Experience', path: '/Experience' },
+    
   ];
 
   if (pathname?.startsWith('/admin')) {
